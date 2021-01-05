@@ -19,4 +19,8 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="VertexShader.hlsl" />
+    <None Include="PixelShader.hlsl" />
+  </ItemGroup>
 </Project>

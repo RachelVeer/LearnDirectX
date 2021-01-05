@@ -1,11 +1,18 @@
 #include <Windows.h>
+#include <wrl.h>
+
 #include <dxgi.h>
 #include <dxgi1_2.h>
+
 #include <d3d11.h>
-#include <wrl.h>
+#include <DirectXMath.h>
+#include <d3dcompiler.h>
+
+#include <array> // for std::size
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "D3DCompiler.lib")
 
 // Globals.
 HWND g_hWnd = nullptr;
@@ -15,12 +22,20 @@ Microsoft::WRL::ComPtr<ID3D11Device> g_d3dDevice;
 Microsoft::WRL::ComPtr<ID3D11DeviceContext> g_ImmediateContext;
 Microsoft::WRL::ComPtr<IDXGISwapChain1> g_SwapChain;
 Microsoft::WRL::ComPtr<ID3D11RenderTargetView> g_RenderTargetView;
+Microsoft::WRL::ComPtr<ID3D11Buffer> g_VertexBuffer;
+Microsoft::WRL::ComPtr<ID3D11InputLayout> g_VertexLayout;
+Microsoft::WRL::ComPtr<ID3D11VertexShader> g_VertexShader;
+Microsoft::WRL::ComPtr<ID3D11PixelShader> g_PixelShader;
+
+UINT verticesSize = 0;
 
 // Forward declarations
 void InitWindow(HINSTANCE hInstance);
 void InitDirect3D();
 void Render();
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+using namespace DirectX;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
@@ -162,12 +177,84 @@ void InitDirect3D()
     vp.TopLeftX = 0;
     vp.TopLeftY = 0;
     g_ImmediateContext->RSSetViewports(1, &vp);
+
+    // Basic initialization over, 
+    // this sect is prep for drawing.
+
+    // Shader setup. 
+    Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
+    Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
+    Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+
+    D3DCompileFromFile(L"VertexShader.hlsl", 0, 0, "VSmain", "vs_4_0", 0, 0, &vertexShader, &errorBlob);
+    D3DCompileFromFile(L"PixelShader.hlsl", 0, 0, "PSmain", "ps_4_0", 0, 0, &pixelShader, &errorBlob);
+
+    // Create Vertex Shader.
+    g_d3dDevice->CreateVertexShader(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), nullptr, &g_VertexShader);
+    // Create Pixel Shader.
+    g_d3dDevice->CreatePixelShader(pixelShader->GetBufferPointer(), pixelShader->GetBufferSize(), nullptr, &g_PixelShader);
+    // Define Input (vertex) Layout
+    D3D11_INPUT_ELEMENT_DESC layout[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
+
+    g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout);
+
+    // Vertex stuff
+    struct Vertex
+    {
+        XMFLOAT2 pos;
+    };
+
+    Vertex vertices[] =
+    {
+        XMFLOAT2(0.0f, 0.5f),
+        XMFLOAT2(0.5f, -0.5f),
+        XMFLOAT2(-0.5f, -0.5f),
+    };
+
+    verticesSize = (UINT)std::size(vertices);
+
+    // Fill in buffer description.
+    D3D11_BUFFER_DESC bufferDesc = {};
+    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    bufferDesc.ByteWidth = sizeof(Vertex) * (UINT)std::size(vertices);
+    bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    bufferDesc.CPUAccessFlags = 0;
+    bufferDesc.MiscFlags = 0;
+
+    // Fill in subresource data. 
+    D3D11_SUBRESOURCE_DATA InitData = {};
+    InitData.pSysMem = vertices;
+    InitData.SysMemPitch = 0;
+    InitData.SysMemSlicePitch = 0;
+
+    // Create the vertex buffer.
+    g_d3dDevice->CreateBuffer(&bufferDesc, &InitData, &g_VertexBuffer);
+
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
+    g_ImmediateContext->IASetVertexBuffers(0, 1, g_VertexBuffer.GetAddressOf(), &stride, &offset);
+
+    // Set the input layout.
+    g_ImmediateContext->IASetInputLayout(g_VertexLayout.Get());
+
+    // Set topology.
+    g_ImmediateContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void Render()
 {
+    g_ImmediateContext->OMSetRenderTargets(1, g_RenderTargetView.GetAddressOf(), nullptr);
+
     const float color[] = { 1.0f, 0.3f, 0.4f, 1.0f };
     g_ImmediateContext->ClearRenderTargetView(g_RenderTargetView.Get(), color);
+    
+    g_ImmediateContext->VSSetShader(g_VertexShader.Get(), nullptr, 0);
+    g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
+    g_ImmediateContext->Draw(verticesSize, 0);
+
     g_SwapChain->Present(1, 0);
 }
 
