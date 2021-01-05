@@ -8,21 +8,46 @@
 #pragma comment(lib, "dxgi.lib")
 
 // Globals.
-static bool g_Running = true;
+HWND g_hWnd = nullptr;
+LPCTSTR g_windowClass = L"Learn DirectX Class";
 Microsoft::WRL::ComPtr<IDXGIFactory2> g_IDXGIFactory;
 Microsoft::WRL::ComPtr<ID3D11Device> g_d3dDevice;
 Microsoft::WRL::ComPtr<ID3D11DeviceContext> g_ImmediateContext;
 Microsoft::WRL::ComPtr<IDXGISwapChain1> g_SwapChain;
 Microsoft::WRL::ComPtr<ID3D11RenderTargetView> g_RenderTargetView;
 
-// Forward declaration (for window registration)
+// Forward declarations
+void InitWindow(HINSTANCE hInstance);
+void InitDirect3D();
+void Render();
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
-    LPCTSTR windowClass = L"Learn DirectX Class";
-    HWND hWnd = nullptr;
+    InitWindow(hInstance);
+    InitDirect3D();
 
+    // Message loop.
+    MSG msg = {0};
+    while (msg.message != WM_QUIT)
+    {
+        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+        {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        else
+        {
+            // Render loop.
+            Render();
+        }
+    }
+
+    return (int)msg.wParam;
+}
+
+void InitWindow(HINSTANCE hInstance)
+{
     // Register window
     WNDCLASSEX wc = {};
     wc.cbSize = sizeof(WNDCLASSEX);
@@ -35,16 +60,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.hCursor = LoadCursor(hInstance, IDC_ARROW);
     wc.hbrBackground = nullptr;
     wc.lpszMenuName = nullptr;
-    wc.lpszClassName = windowClass;
+    wc.lpszClassName = g_windowClass;
     wc.hIconSm = LoadIcon(hInstance, IDI_APPLICATION);
 
     RegisterClassEx(&wc);
 
     // Create window.
 
-    hWnd = CreateWindowEx(
+    g_hWnd = CreateWindowEx(
         0,
-        windowClass,
+        g_windowClass,
         L"Learn DirectX",
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT,
@@ -57,8 +82,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     );
 
     // Make the window visible (it isn't, by default). 
-    ShowWindow(hWnd, SW_SHOW);
+    ShowWindow(g_hWnd, SW_SHOW);
+}
 
+void InitDirect3D()
+{
     // Direct 3D Initialization.
     // Describe swap chain.
     DXGI_SWAP_CHAIN_DESC1 sd = {};
@@ -75,9 +103,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // Create device.
     const D3D_FEATURE_LEVEL featureLevels[] =
-        { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
-          D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0,
-          D3D_FEATURE_LEVEL_9_3, D3D_FEATURE_LEVEL_9_2, D3D_FEATURE_LEVEL_9_1 };
+    { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
+      D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0,
+      D3D_FEATURE_LEVEL_9_3, D3D_FEATURE_LEVEL_9_2, D3D_FEATURE_LEVEL_9_1 };
     UINT createDeviceFlags = 0;
 #ifdef _DEBUG
     createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -103,7 +131,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // Create swap chain.
     g_IDXGIFactory->CreateSwapChainForHwnd(
         g_d3dDevice.Get(),
-        hWnd,
+        g_hWnd,
         &sd,
         nullptr,
         nullptr,
@@ -134,26 +162,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     vp.TopLeftX = 0;
     vp.TopLeftY = 0;
     g_ImmediateContext->RSSetViewports(1, &vp);
+}
 
-    // Message loop.
-    MSG msg = {0};
+void Render()
+{
     const float color[] = { 1.0f, 0.3f, 0.4f, 1.0f };
-    while (msg.message != WM_QUIT)
-    {
-        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-        else
-        {
-            // Render loop.
-            g_ImmediateContext->ClearRenderTargetView(g_RenderTargetView.Get(), color);
-            g_SwapChain->Present(1, 0);
-        }
-    }
-
-    return (int)msg.wParam;
+    g_ImmediateContext->ClearRenderTargetView(g_RenderTargetView.Get(), color);
+    g_SwapChain->Present(1, 0);
 }
 
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
