@@ -27,8 +27,10 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> g_VertexBuffer;
 Microsoft::WRL::ComPtr<ID3D11InputLayout> g_VertexLayout;
 Microsoft::WRL::ComPtr<ID3D11VertexShader> g_VertexShader;
 Microsoft::WRL::ComPtr<ID3D11PixelShader> g_PixelShader;
+Microsoft::WRL::ComPtr<ID3D11Buffer> g_IndexBuffer;
 
-UINT verticesSize = 0;
+UINT g_verticesSize = 0;
+UINT g_indexCount = 0;
 
 // Forward declarations
 void InitWindow(HINSTANCE hInstance);
@@ -217,28 +219,59 @@ void InitDirect3D()
         { XMFLOAT2(-0.5f, -0.5f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
     };
 
-    verticesSize = (UINT)std::size(vertices);
+    g_verticesSize = (UINT)std::size(vertices);
 
-    // Fill in buffer description.
-    D3D11_BUFFER_DESC bufferDesc = {};
-    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-    bufferDesc.ByteWidth = sizeof(Vertex) * (UINT)std::size(vertices);
-    bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    bufferDesc.CPUAccessFlags = 0;
-    bufferDesc.MiscFlags = 0;
+    // Create the Vertex buffer.
+    {
+        // Fill in buffer description.
+        D3D11_BUFFER_DESC bufferDesc = {};
+        bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+        bufferDesc.ByteWidth = sizeof(Vertex) * (UINT)std::size(vertices);
+        bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        bufferDesc.CPUAccessFlags = 0;
+        bufferDesc.MiscFlags = 0;
 
-    // Fill in subresource data. 
-    D3D11_SUBRESOURCE_DATA InitData = {};
-    InitData.pSysMem = vertices;
-    InitData.SysMemPitch = 0;
-    InitData.SysMemSlicePitch = 0;
+        // Fill in subresource data. 
+        D3D11_SUBRESOURCE_DATA InitData = {};
+        InitData.pSysMem = vertices;
+        InitData.SysMemPitch = 0;
+        InitData.SysMemSlicePitch = 0;
 
-    // Create the vertex buffer.
-    g_d3dDevice->CreateBuffer(&bufferDesc, &InitData, &g_VertexBuffer);
+        // Create the vertex buffer.
+        g_d3dDevice->CreateBuffer(&bufferDesc, &InitData, &g_VertexBuffer);
 
-    UINT stride = sizeof(Vertex);
-    UINT offset = 0;
-    g_ImmediateContext->IASetVertexBuffers(0, 1, g_VertexBuffer.GetAddressOf(), &stride, &offset);
+        UINT stride = sizeof(Vertex);
+        UINT offset = 0;
+        g_ImmediateContext->IASetVertexBuffers(0, 1, g_VertexBuffer.GetAddressOf(), &stride, &offset);
+    }
+
+    // Create Index buffer.
+    {
+        // Create indices.
+        unsigned int indices[] = { 0, 1, 2 };
+
+        g_indexCount = (UINT)std::size(indices);
+
+        // Fill in buffer description.
+        D3D11_BUFFER_DESC bufferDesc = {};
+        bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+        bufferDesc.ByteWidth = sizeof(unsigned int) * (UINT)std::size(indices);
+        bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        bufferDesc.CPUAccessFlags = 0;
+        bufferDesc.MiscFlags = 0;
+
+        // Define the resource data.
+        D3D11_SUBRESOURCE_DATA InitData = {};
+        InitData.pSysMem = indices;
+        InitData.SysMemPitch = 0;
+        InitData.SysMemSlicePitch = 0;
+
+        // Create the buffer with the device.
+        g_d3dDevice->CreateBuffer(&bufferDesc, &InitData, &g_IndexBuffer);
+
+        // Set the buffer.
+        g_ImmediateContext->IASetIndexBuffer(g_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+    }
 
     // Set the input layout.
     g_ImmediateContext->IASetInputLayout(g_VertexLayout.Get());
@@ -256,7 +289,7 @@ void Render()
     
     g_ImmediateContext->VSSetShader(g_VertexShader.Get(), nullptr, 0);
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
-    g_ImmediateContext->Draw(verticesSize, 0);
+    g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
 
     g_SwapChain->Present(1, 0);
 }
