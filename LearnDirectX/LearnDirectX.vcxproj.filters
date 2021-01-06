@@ -23,4 +23,9 @@
     <None Include="VertexShader.hlsl" />
     <None Include="PixelShader.hlsl" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

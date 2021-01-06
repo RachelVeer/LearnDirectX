@@ -6,7 +6,8 @@
 
 #include <d3d11.h>
 #include <DirectXMath.h>
-#include <d3dcompiler.h>
+
+#include "Shader.h"
 
 #include <array> // for std::size
 
@@ -71,12 +72,12 @@ void InitWindow(HINSTANCE hInstance)
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
     wc.hInstance = hInstance;       // Can use getmodulehandle to decouple main param dependency 
-    wc.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
-    wc.hCursor = LoadCursor(hInstance, IDC_ARROW);
+    wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hbrBackground = nullptr;
     wc.lpszMenuName = nullptr;
     wc.lpszClassName = g_windowClass;
-    wc.hIconSm = LoadIcon(hInstance, IDI_APPLICATION);
+    wc.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
 
     RegisterClassEx(&wc);
 
@@ -155,7 +156,7 @@ void InitDirect3D()
     // TODO: Create RTV
     // Lead: https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-initialize
     // Create render target view (RTV).
-    ID3D11Texture2D* pBackBuffer;
+    ID3D11Texture2D* pBackBuffer = nullptr;
     // Get a pointer to the back buffer.
     g_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
         reinterpret_cast<void**>(&pBackBuffer));
@@ -186,8 +187,8 @@ void InitDirect3D()
     Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
     Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 
-    D3DCompileFromFile(L"VertexShader.hlsl", 0, 0, "VSmain", "vs_4_0", 0, 0, &vertexShader, &errorBlob);
-    D3DCompileFromFile(L"PixelShader.hlsl", 0, 0, "PSmain", "ps_4_0", 0, 0, &pixelShader, &errorBlob);
+    Shader CompileVertex(L"VertexShader.hlsl","VSmain", "vs_4_0", &vertexShader);
+    Shader CompilePixel(L"PixelShader.hlsl","PSmain", "ps_4_0", &pixelShader);
 
     // Create Vertex Shader.
     g_d3dDevice->CreateVertexShader(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), nullptr, &g_VertexShader);
