@@ -197,6 +197,7 @@ void InitDirect3D()
     D3D11_INPUT_ELEMENT_DESC layout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 
     g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout);
@@ -205,13 +206,14 @@ void InitDirect3D()
     struct Vertex
     {
         XMFLOAT2 pos;
+        XMFLOAT3 color;
     };
 
     Vertex vertices[] =
     {
-        XMFLOAT2(0.0f, 0.5f),
-        XMFLOAT2(0.5f, -0.5f),
-        XMFLOAT2(-0.5f, -0.5f),
+        { XMFLOAT2( 0.0f,  0.5f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
+        { XMFLOAT2( 0.5f, -0.5f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+        { XMFLOAT2(-0.5f, -0.5f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
     };
 
     verticesSize = (UINT)std::size(vertices);
@@ -248,7 +250,7 @@ void Render()
 {
     g_ImmediateContext->OMSetRenderTargets(1, g_RenderTargetView.GetAddressOf(), nullptr);
 
-    const float color[] = { 1.0f, 0.3f, 0.4f, 1.0f };
+    const float color[] = { 0.16f, 0.16f, 0.16f, 1.0f };
     g_ImmediateContext->ClearRenderTargetView(g_RenderTargetView.Get(), color);
     
     g_ImmediateContext->VSSetShader(g_VertexShader.Get(), nullptr, 0);
