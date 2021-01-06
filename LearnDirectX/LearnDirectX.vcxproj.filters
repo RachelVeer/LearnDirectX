@@ -13,10 +13,16 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="DDSTextureLoader">
+      <UniqueIdentifier>{12d4d68a-1873-46aa-b071-cb09c628cd2a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DDSTextureLoader11.cpp">
+      <Filter>DDSTextureLoader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -26,6 +32,9 @@
   <ItemGroup>
     <ClInclude Include="Shader.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DDSTextureLoader11.h">
+      <Filter>DDSTextureLoader</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

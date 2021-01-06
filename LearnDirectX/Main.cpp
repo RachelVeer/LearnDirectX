@@ -8,12 +8,14 @@
 #include <DirectXMath.h>
 
 #include "Shader.h"
+#include "DDSTextureLoader11.h"
 
 #include <array> // for std::size
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "D3DCompiler.lib")
+#pragma comment(lib, "dxguid.lib")
 
 // Globals.
 HWND g_hWnd = nullptr;
@@ -28,6 +30,9 @@ Microsoft::WRL::ComPtr<ID3D11InputLayout> g_VertexLayout;
 Microsoft::WRL::ComPtr<ID3D11VertexShader> g_VertexShader;
 Microsoft::WRL::ComPtr<ID3D11PixelShader> g_PixelShader;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_IndexBuffer;
+Microsoft::WRL::ComPtr<ID3D11Resource> g_Resource;
+Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> g_ShaderResourceView;
+Microsoft::WRL::ComPtr<ID3D11SamplerState> g_SamplerState;
 
 UINT g_verticesSize = 0;
 UINT g_indexCount = 0;
@@ -155,8 +160,6 @@ void InitDirect3D()
         nullptr,
         &g_SwapChain);
 
-    // TODO: Create RTV
-    // Lead: https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-initialize
     // Create render target view (RTV).
     ID3D11Texture2D* pBackBuffer = nullptr;
     // Get a pointer to the back buffer.
@@ -200,7 +203,7 @@ void InitDirect3D()
     D3D11_INPUT_ELEMENT_DESC layout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 
     g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout);
@@ -209,14 +212,15 @@ void InitDirect3D()
     struct Vertex
     {
         XMFLOAT2 pos;
-        XMFLOAT3 color;
+        XMFLOAT2 tex;
     };
 
     Vertex vertices[] =
     {
-        { XMFLOAT2( 0.0f,  0.5f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
-        { XMFLOAT2( 0.5f, -0.5f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT2(-0.5f, -0.5f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        // Position               // Texture
+        { XMFLOAT2( 0.0f,  0.5f), XMFLOAT2(0.5f, 0.0f) },
+        { XMFLOAT2( 0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f) },
+        { XMFLOAT2(-0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f) },
     };
 
     g_verticesSize = (UINT)std::size(vertices);
@@ -278,6 +282,29 @@ void InitDirect3D()
 
     // Set topology.
     g_ImmediateContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // Texture stuffs
+    {
+        // Lightweight DDS file loader from the DirectX Tool Kit.
+        // Source: https://github.com/Microsoft/DirectXTK/wiki/DDSTextureLoader
+        CreateDDSTextureFromFile(g_d3dDevice.Get(), L"Assets/Textures/wall.dds", &g_Resource, &g_ShaderResourceView);
+
+        // Create sample state.
+        D3D11_SAMPLER_DESC samplerDesc = {};
+        SecureZeroMemory(&samplerDesc, sizeof(samplerDesc));
+        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+        samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+        samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        samplerDesc.MinLOD = 0;
+        samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+        g_d3dDevice->CreateSamplerState(&samplerDesc, &g_SamplerState);
+
+        g_ImmediateContext->PSSetShaderResources(0, 1, g_ShaderResourceView.GetAddressOf());
+        g_ImmediateContext->PSSetSamplers(0, 1, g_SamplerState.GetAddressOf());
+    }
 }
 
 void Render()
