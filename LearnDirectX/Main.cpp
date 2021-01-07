@@ -218,9 +218,10 @@ void InitDirect3D()
     Vertex vertices[] =
     {
         // Position               // Texture
-        { XMFLOAT2( 0.0f,  0.5f), XMFLOAT2(0.5f, 0.0f) },
-        { XMFLOAT2( 0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f) },
-        { XMFLOAT2(-0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f) },
+        { XMFLOAT2( -0.5f,  0.5f), XMFLOAT2(0.0f, 0.0f) },
+        { XMFLOAT2(  0.5f,  0.5f), XMFLOAT2(1.0f, 0.0f) },
+        { XMFLOAT2(  0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f) },
+        { XMFLOAT2( -0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f) },
     };
 
     g_verticesSize = (UINT)std::size(vertices);
@@ -252,7 +253,11 @@ void InitDirect3D()
     // Create Index buffer.
     {
         // Create indices.
-        unsigned int indices[] = { 0, 1, 2 };
+        unsigned int indices[] = 
+        { 
+            0, 1, 2,  // Top right triangle
+            0, 2, 3   // Bottem left triangle (together form rectangle) 
+        };
 
         g_indexCount = (UINT)std::size(indices);
 
@@ -287,7 +292,7 @@ void InitDirect3D()
     {
         // Lightweight DDS file loader from the DirectX Tool Kit.
         // Source: https://github.com/Microsoft/DirectXTK/wiki/DDSTextureLoader
-        CreateDDSTextureFromFile(g_d3dDevice.Get(), L"Assets/Textures/wall.dds", &g_Resource, &g_ShaderResourceView);
+        CreateDDSTextureFromFile(g_d3dDevice.Get(), L"Assets/Textures/container.dds", &g_Resource, &g_ShaderResourceView);
 
         // Create sample state.
         D3D11_SAMPLER_DESC samplerDesc = {};
