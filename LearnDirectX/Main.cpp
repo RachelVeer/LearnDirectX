@@ -21,7 +21,7 @@
 HWND g_hWnd = nullptr;
 LPCTSTR g_windowClass = L"Learn DirectX Class";
 Microsoft::WRL::ComPtr<IDXGIFactory2> g_IDXGIFactory;
-Microsoft::WRL::ComPtr<ID3D11Device> g_d3dDevice;
+Microsoft::WRL::ComPtr<ID3D11Device1> g_d3dDevice;
 Microsoft::WRL::ComPtr<ID3D11DeviceContext> g_ImmediateContext;
 Microsoft::WRL::ComPtr<IDXGISwapChain1> g_SwapChain;
 Microsoft::WRL::ComPtr<ID3D11RenderTargetView> g_RenderTargetView;
@@ -33,9 +33,15 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> g_IndexBuffer;
 Microsoft::WRL::ComPtr<ID3D11Resource> g_Resource;
 Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> g_ShaderResourceView;
 Microsoft::WRL::ComPtr<ID3D11SamplerState> g_SamplerState;
+Microsoft::WRL::ComPtr<ID3D11BlendState1> g_BlendState;
+Microsoft::WRL::ComPtr<ID3D11DepthStencilState> g_DSState;
+Microsoft::WRL::ComPtr<ID3D11Texture2D> g_DepthStencil;
+Microsoft::WRL::ComPtr<ID3D11DepthStencilView> g_DSV;
 
 UINT g_verticesSize = 0;
 UINT g_indexCount = 0;
+
+const float g_color[] = { 0.16f, 0.16f, 0.16f, 1.0f };
 
 // Forward declarations
 void InitWindow(HINSTANCE hInstance);
@@ -135,6 +141,8 @@ void InitDirect3D()
 #endif
     D3D_FEATURE_LEVEL featureLevelsSupported;
 
+    Microsoft::WRL::ComPtr<ID3D11Device> d3dDevice;
+
     D3D11CreateDevice(
         nullptr,
         D3D_DRIVER_TYPE_HARDWARE,
@@ -143,10 +151,12 @@ void InitDirect3D()
         featureLevels,
         _countof(featureLevels),
         D3D11_SDK_VERSION,
-        &g_d3dDevice,
+        &d3dDevice,
         &featureLevelsSupported,
         &g_ImmediateContext
     );
+
+    d3dDevice.As(&g_d3dDevice);
 
     // Create IDXGI factory. 
     CreateDXGIFactory1(__uuidof(IDXGIFactory1), &g_IDXGIFactory);
@@ -169,10 +179,43 @@ void InitDirect3D()
     // Create a render target view.
     g_d3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_RenderTargetView);
 
-    // Bind the view.
-    g_ImmediateContext->OMSetRenderTargets(1, g_RenderTargetView.GetAddressOf(), nullptr);
-
     pBackBuffer->Release(); // Not using this anymore.
+
+    // Depth Buffer
+    {
+        D3D11_DEPTH_STENCIL_DESC depthDesc = { 0 };
+        depthDesc.DepthEnable = TRUE;
+        depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        depthDesc.DepthFunc = D3D11_COMPARISON_LESS;
+        g_d3dDevice->CreateDepthStencilState(&depthDesc, &g_DSState);
+
+        // Bind depth state.
+        g_ImmediateContext->OMSetDepthStencilState(g_DSState.Get(), 1u);
+
+        // Create depth stencil texture.
+        D3D11_TEXTURE2D_DESC descDepth = {};
+        descDepth.Width = 800u;
+        descDepth.Height = 600u;
+        descDepth.MipLevels = 1u;
+        descDepth.ArraySize = 1u;
+        descDepth.Format = DXGI_FORMAT_D32_FLOAT;
+        descDepth.SampleDesc.Count = 1u;
+        descDepth.SampleDesc.Quality = 0u;
+        descDepth.Usage = D3D11_USAGE_DEFAULT;
+        descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+        g_d3dDevice->CreateTexture2D(&descDepth, nullptr, &g_DepthStencil);
+
+        // Create view of depth stencil texture.
+        D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
+        descDSV.Format = DXGI_FORMAT_D32_FLOAT;
+        descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+        descDSV.Texture2D.MipSlice = 0u;
+
+        g_d3dDevice->CreateDepthStencilView(g_DepthStencil.Get(), &descDSV, &g_DSV);
+
+        // Bind depth stencil view to output merger.
+        g_ImmediateContext->OMSetRenderTargets(1u, g_RenderTargetView.GetAddressOf(), g_DSV.Get());
+    }
 
     // Setup viewport.
     D3D11_VIEWPORT vp = {};
@@ -290,6 +333,27 @@ void InitDirect3D()
     // Set topology.
     g_ImmediateContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+    // Blending
+    {
+        D3D11_BLEND_DESC1 blendState = {};
+        SecureZeroMemory(&blendState, sizeof(blendState));
+        blendState.RenderTarget[0].BlendEnable = true;
+        blendState.RenderTarget[0].LogicOpEnable = false;
+        blendState.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+        blendState.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+        blendState.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+        blendState.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+        blendState.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+        blendState.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        blendState.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        g_d3dDevice->CreateBlendState1(&blendState, &g_BlendState);
+
+        float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        UINT sampleMask = 0xffffffff;
+
+        g_ImmediateContext->OMSetBlendState(g_BlendState.Get(), blendFactor, sampleMask);
+    }
+
     // Texture stuffs
     {
         // Lightweight DDS file loader from the DirectX Tool Kit.
@@ -303,23 +367,28 @@ void InitDirect3D()
         samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-        samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-        samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
         samplerDesc.MinLOD = 0;
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
         g_d3dDevice->CreateSamplerState(&samplerDesc, &g_SamplerState);
 
+        // Set shader resource for first texture.
         g_ImmediateContext->PSSetShaderResources(0, 1, g_ShaderResourceView.GetAddressOf());
+        
+        // Create second texture & set shader resource for it.  
+        CreateDDSTextureFromFile(g_d3dDevice.Get(), L"Assets/Textures/awesomeface.dds", &g_Resource, &g_ShaderResourceView);
+        g_ImmediateContext->PSSetShaderResources(1, 1, g_ShaderResourceView.GetAddressOf());
+        
+        // Bind sampler state. 
         g_ImmediateContext->PSSetSamplers(0, 1, g_SamplerState.GetAddressOf());
     }
 }
 
 void Render()
 {
-    g_ImmediateContext->OMSetRenderTargets(1, g_RenderTargetView.GetAddressOf(), nullptr);
-
-    const float color[] = { 0.16f, 0.16f, 0.16f, 1.0f };
-    g_ImmediateContext->ClearRenderTargetView(g_RenderTargetView.Get(), color);
+    g_ImmediateContext->OMSetRenderTargets(1, g_RenderTargetView.GetAddressOf(), g_DSV.Get());
+    g_ImmediateContext->ClearRenderTargetView(g_RenderTargetView.Get(), g_color);
+    g_ImmediateContext->ClearDepthStencilView(g_DSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
     
     g_ImmediateContext->VSSetShader(g_VertexShader.Get(), nullptr, 0);
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
