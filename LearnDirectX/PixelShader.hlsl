@@ -12,7 +12,7 @@ float4 PSmain(float4 pos : SV_POSITION, float2 tex : TEXCOORD, float3 color : CO
     tex2 = txDiffuse[1].Sample(samLinear, tex);
     
     // Linearly interpolate between both textures (80% container, 20% awesomeface).
-    FinalColor = lerp(tex1, tex2, 0.2f);
+    FinalColor = tex1 + tex2 / 2;
     
     return FinalColor;
 }
