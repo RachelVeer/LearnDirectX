@@ -7,6 +7,7 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 
+#include "Timer.h"
 #include "Shader.h"
 #include "DDSTextureLoader11.h"
 
@@ -16,6 +17,7 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "D3DCompiler.lib")
 #pragma comment(lib, "dxguid.lib")
+#pragma comment(lib, "Winmm.lib")
 
 // Globals.
 HWND g_hWnd = nullptr;
@@ -43,10 +45,14 @@ UINT g_verticesSize = 0;
 UINT g_indexCount = 0;
 
 const float g_color[] = { 0.16f, 0.16f, 0.16f, 1.0f };
+float g_angle;
+
+Timer timer; // For delta time
 
 // Forward declarations
 void InitWindow(HINSTANCE hInstance);
 void InitDirect3D();
+void Update(float angle);
 void Render();
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -54,6 +60,7 @@ using namespace DirectX;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+    SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     InitWindow(hInstance);
     InitDirect3D();
 
@@ -69,6 +76,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         else
         {
             // Render loop.
+            Update(timer.Peek());
             Render();
         }
     }
@@ -383,20 +391,26 @@ void InitDirect3D()
         // Bind sampler state. 
         g_ImmediateContext->PSSetSamplers(0, 1, g_SamplerState.GetAddressOf());
     }
+}
 
+void Update(float angle)
+{
+    // TODO: do this better...
+    // i.e. not create the buffer every frame.
     // Constant buffer
     {
         struct ConstantBuffer
         {
             XMMATRIX transform;
         };
-        
+
         // Supply vertex shader constant data.
         const ConstantBuffer cb =
         {
             XMMatrixTranspose(
-                XMMatrixRotationZ(XMConvertToRadians(90.0f)) * 
-                XMMatrixScaling((3.0f / 4.0f) * 0.5f, 0.5f, 0.5f)
+                XMMatrixRotationZ(angle) *
+                XMMatrixScaling((3.0f / 4.0f) * 1.0f, 1.0f, 1.0f) *
+                XMMatrixTranslation(0.5f, -0.5f, 0.0f)
             )
         };
 
@@ -425,7 +439,7 @@ void Render()
     g_ImmediateContext->OMSetRenderTargets(1, g_RenderTargetView.GetAddressOf(), g_DSV.Get());
     g_ImmediateContext->ClearRenderTargetView(g_RenderTargetView.Get(), g_color);
     g_ImmediateContext->ClearDepthStencilView(g_DSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
-    
+
     g_ImmediateContext->VSSetShader(g_VertexShader.Get(), nullptr, 0);
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
