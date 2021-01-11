@@ -40,6 +40,7 @@ Microsoft::WRL::ComPtr<ID3D11DepthStencilState> g_DSState;
 Microsoft::WRL::ComPtr<ID3D11Texture2D> g_DepthStencil;
 Microsoft::WRL::ComPtr<ID3D11DepthStencilView> g_DSV;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_ConstantBuffer;
+Microsoft::WRL::ComPtr<ID3D11Buffer> g_ConstantBuffer2;
 
 UINT g_verticesSize = 0;
 UINT g_indexCount = 0;
@@ -431,6 +432,32 @@ void Update(float angle)
 
         // Create the buffer.
         g_d3dDevice->CreateBuffer(&cbDesc, &InitData, &g_ConstantBuffer);
+
+        const ConstantBuffer cb2 =
+        {
+            XMMatrixTranspose(
+                XMMatrixScaling((3.0f / 4.0f) * sin(angle / 2), sin(angle / 2), 1.0f) *
+                XMMatrixTranslation(-0.5f, 0.5f, 0.0f)
+            )
+        };
+
+        // Fill in the buffer description.
+        D3D11_BUFFER_DESC cbDesc2 = {};
+        cbDesc2.ByteWidth = sizeof(cb2);
+        cbDesc2.Usage = D3D11_USAGE_DYNAMIC;
+        cbDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        cbDesc2.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        cbDesc2.MiscFlags = 0;
+        cbDesc2.StructureByteStride = 0;
+
+        // Fill in the subresource data.
+        D3D11_SUBRESOURCE_DATA InitData2 = {};
+        InitData2.pSysMem = &cb2;
+        InitData2.SysMemPitch = 0;
+        InitData2.SysMemSlicePitch = 0;
+
+        // Create the buffer.
+        g_d3dDevice->CreateBuffer(&cbDesc2, &InitData2, &g_ConstantBuffer2);
     }
 }
 
@@ -443,6 +470,9 @@ void Render()
     g_ImmediateContext->VSSetShader(g_VertexShader.Get(), nullptr, 0);
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
+    g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
+
+    g_ImmediateContext->VSSetConstantBuffers(0, 1, g_ConstantBuffer2.GetAddressOf());
     g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
 
     g_SwapChain->Present(1, 0);
