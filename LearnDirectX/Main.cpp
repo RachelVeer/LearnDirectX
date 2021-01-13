@@ -255,9 +255,8 @@ void InitDirect3D()
     // Define Input (vertex) Layout
     D3D11_INPUT_ELEMENT_DESC layout[] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 
     g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout);
@@ -265,18 +264,43 @@ void InitDirect3D()
     // Vertex stuff
     struct Vertex
     {
-        XMFLOAT2 pos;
+        XMFLOAT3 pos;
         XMFLOAT2 tex;
-        XMFLOAT3 color;
     };
 
     Vertex vertices[] =
     {
-        // Position               // Texture
-        { XMFLOAT2( -0.5f,  0.5f), XMFLOAT2(0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
-        { XMFLOAT2(  0.5f,  0.5f), XMFLOAT2(1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT2(  0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-        { XMFLOAT2( -0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 1.0f) },
+        // Position               // Texture            // Color
+        { XMFLOAT3( -0.5f, 0.5f, -0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
+        { XMFLOAT3(  0.5f, 0.5f, -0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
+        { XMFLOAT3(  0.5f, 0.5f, 0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
+        { XMFLOAT3( -0.5f, 0.5f, 0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
+
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
+        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
+        { XMFLOAT3(  0.5f, -0.5f,  0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
+        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
+
+        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
+        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
+        { XMFLOAT3( -0.5f,  0.5f,  0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
+
+        { XMFLOAT3( 0.5f, -0.5f,  0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
+        { XMFLOAT3( 0.5f, -0.5f, -0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
+        { XMFLOAT3( 0.5f,  0.5f, -0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
+        { XMFLOAT3( 0.5f,  0.5f,  0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
+
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
+        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
+        { XMFLOAT3(  0.5f,  0.5f, -0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
+        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
+
+        { XMFLOAT3( -0.5f, -0.5f, 0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
+        { XMFLOAT3(  0.5f, -0.5f, 0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
+        { XMFLOAT3(  0.5f,  0.5f, 0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
+        { XMFLOAT3( -0.5f,  0.5f, 0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
+
     };
 
     g_verticesSize = (UINT)std::size(vertices);
@@ -310,8 +334,24 @@ void InitDirect3D()
         // Create indices.
         unsigned int indices[] = 
         { 
-            0, 1, 2,  // Top right triangle
-            0, 2, 3   // Bottem left triangle (together form rectangle) 
+            3,1,0,
+            2,1,3,
+
+            6,4,5,
+            7,4,6,
+
+            11,9,8,
+            10,9,11,
+
+            14,12,13,
+            15,12,14,
+
+            19,17,16,
+            18,17,19,
+
+            22,20,21,
+            23,20,22
+
         };
 
         g_indexCount = (UINT)std::size(indices);
