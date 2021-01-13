@@ -27,6 +27,19 @@ using namespace DirectX;
     XMMATRIX transform;
 };
 
+XMFLOAT3 cubePositions[] = {
+            XMFLOAT3( 0.0f,  0.0f,  0.0f),
+            XMFLOAT3( 2.0f,  5.0f, 15.0f),
+            XMFLOAT3(-1.5f, -2.2f, 2.5f),
+            XMFLOAT3(-3.8f, -2.0f, 12.3f),
+            XMFLOAT3( 2.4f, -0.4f, 3.5f),
+            XMFLOAT3(-1.7f,  3.0f, 7.5f),
+            XMFLOAT3( 1.3f, -2.0f, 2.5f),
+            XMFLOAT3( 1.5f,  2.0f, 2.5f),
+            XMFLOAT3( 1.5f,  0.2f, 1.5f),
+            XMFLOAT3(-1.3f,  1.0f, 1.5f) 
+        };
+
 // Globals.
 HWND g_hWnd = nullptr;
 LPCTSTR g_windowClass = L"Learn DirectX Class";
@@ -62,7 +75,7 @@ Timer timer; // For delta time
 void InitWindow(HINSTANCE hInstance);
 void InitDirect3D();
 void Update(float angle);
-void Render();
+void Render(float angle);
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
@@ -84,7 +97,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         {
             // Render loop.
             Update(timer.Peek());
-            Render();
+            Render(timer.Peek());
         }
     }
 
@@ -459,32 +472,25 @@ void InitDirect3D()
         // TODO: calculate this in a way where there are seperate contants...
         // i.e. some of these don't need to constantly change (see DX samples).
         ConstantBuffer cb;
-        cb.transform = XMMatrixTranspose(
-                XMMatrixRotationX(XMConvertToRadians(55.0f)) *                                      // model
-                XMMatrixTranslation(0.0f, 0.0f, 3.0f) *                                             // view 
-                XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
-            );
-        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
+        for(unsigned int i = 0; i < 10; i++)
+        {
+            cb.transform = XMMatrixTranspose(
+                    XMMatrixRotationX(XMConvertToRadians(55.0f)) *                                      // model
+                    XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z) *   // model translation
+                    XMMatrixTranslation(0.0f, 0.0f, -0.3f) *                                            // view  
+                    XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
+                );
+            g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+        }
 
     }
 }
 
 void Update(float angle)
 {
-    g_transform = XMMatrixTranspose(
-                XMMatrixRotationX(XMConvertToRadians(angle * 50.f)) *                               // model
-                XMMatrixRotationY(XMConvertToRadians(angle * 50.f)) *                               // model
-                XMMatrixTranslation(0.0f, 0.0f, 3.0f) *                                             // view 
-                XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
-            );
-    // Supply vertex shader constant data.
-    ConstantBuffer cb;
-    cb.transform = g_transform;
-    g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 }
 
-void Render()
+void Render(float angle)
 {
     g_ImmediateContext->OMSetRenderTargets(1, g_RenderTargetView.GetAddressOf(), g_DSV.Get());
     g_ImmediateContext->ClearRenderTargetView(g_RenderTargetView.Get(), g_color);
@@ -493,7 +499,23 @@ void Render()
     g_ImmediateContext->VSSetShader(g_VertexShader.Get(), nullptr, 0);
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
-    g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
+
+    for(unsigned int i = 0; i < 10; i++)
+    {
+        g_transform = XMMatrixTranspose(
+                    XMMatrixRotationX(XMConvertToRadians(angle * 20.0f * i)) *                               // model
+                    XMMatrixRotationY(XMConvertToRadians(angle * 20.0f * i)) *                               // model
+                    XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z) *   // model translation
+                    XMMatrixTranslation(0.0f,0.0f, 3.0f) *                                              // view 
+                    XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
+                );
+
+                 // Supply vertex shader constant data.
+        ConstantBuffer cb;
+        cb.transform = g_transform;
+        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
+        g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
+    }
 
     g_SwapChain->Present(1, 0);
 }
