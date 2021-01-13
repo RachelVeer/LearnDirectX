@@ -19,6 +19,14 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "Winmm.lib")
 
+using namespace DirectX;
+
+// Structures
+ struct ConstantBuffer
+{
+    XMMATRIX transform;
+};
+
 // Globals.
 HWND g_hWnd = nullptr;
 LPCTSTR g_windowClass = L"Learn DirectX Class";
@@ -46,7 +54,7 @@ UINT g_verticesSize = 0;
 UINT g_indexCount = 0;
 
 const float g_color[] = { 0.16f, 0.16f, 0.16f, 1.0f };
-float g_angle;
+XMMATRIX g_transform;
 
 Timer timer; // For delta time
 
@@ -56,8 +64,6 @@ void InitDirect3D();
 void Update(float angle);
 void Render();
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-using namespace DirectX;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
@@ -432,47 +438,50 @@ void InitDirect3D()
         // Bind sampler state. 
         g_ImmediateContext->PSSetSamplers(0, 1, g_SamplerState.GetAddressOf());
     }
-}
 
-void Update(float angle)
-{
     // TODO: do this better...
     // i.e. not create the buffer every frame.
     // Constant buffer
     {
-        struct ConstantBuffer
-        {
-            XMMATRIX transform;
-        };
-
-        // Supply vertex shader constant data.
-        const ConstantBuffer cb =
-        {
-            XMMatrixTranspose(
-                XMMatrixRotationX(XMConvertToRadians(55.0f)) *                                      // model
-                XMMatrixTranslation(0.0f, 0.0f, 3.0f) *                                             // view 
-                XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
-            )
-        };
-
         // Fill in the buffer description.
         D3D11_BUFFER_DESC cbDesc = {};
-        cbDesc.ByteWidth = sizeof(cb);
-        cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+        cbDesc.ByteWidth = sizeof(ConstantBuffer);
+        cbDesc.Usage = D3D11_USAGE_DEFAULT;
         cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        cbDesc.CPUAccessFlags = 0;
         cbDesc.MiscFlags = 0;
         cbDesc.StructureByteStride = 0;
 
-        // Fill in the subresource data.
-        D3D11_SUBRESOURCE_DATA InitData = {};
-        InitData.pSysMem = &cb;
-        InitData.SysMemPitch = 0;
-        InitData.SysMemSlicePitch = 0;
-
         // Create the buffer.
-        g_d3dDevice->CreateBuffer(&cbDesc, &InitData, &g_ConstantBuffer);
+        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_ConstantBuffer);
+
+        // Initialize the constant.  
+        // TODO: calculate this in a way where there are seperate contants...
+        // i.e. some of these don't need to constantly change (see DX samples).
+        ConstantBuffer cb;
+        cb.transform = XMMatrixTranspose(
+                XMMatrixRotationX(XMConvertToRadians(55.0f)) *                                      // model
+                XMMatrixTranslation(0.0f, 0.0f, 3.0f) *                                             // view 
+                XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
+            );
+        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+
     }
+}
+
+void Update(float angle)
+{
+    g_transform = XMMatrixTranspose(
+                XMMatrixRotationX(XMConvertToRadians(angle * 50.f)) *                               // model
+                XMMatrixRotationY(XMConvertToRadians(angle * 50.f)) *                               // model
+                XMMatrixTranslation(0.0f, 0.0f, 3.0f) *                                             // view 
+                XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
+            );
+    // Supply vertex shader constant data.
+    ConstantBuffer cb;
+    cb.transform = g_transform;
+    g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 }
 
 void Render()
