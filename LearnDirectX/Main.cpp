@@ -40,6 +40,11 @@ XMFLOAT3 cubePositions[] = {
             XMFLOAT3(-1.3f,  1.0f, 1.5f) 
         };
 
+// Camera
+XMFLOAT3 cameraPos = {0.0f, 0.0f, 3.0f};
+XMFLOAT3 cameraFront = {0.0f, 0.0f, -1.0f};
+XMFLOAT3 cameraUp = {0.0f, 1.0f, 0.0f};
+
 // Globals.
 HWND g_hWnd = nullptr;
 LPCTSTR g_windowClass = L"Learn DirectX Class";
@@ -69,7 +74,11 @@ UINT g_indexCount = 0;
 const float g_color[] = { 0.16f, 0.16f, 0.16f, 1.0f };
 XMMATRIX g_transform;
 
-Timer timer; // For delta time
+Timer timer; // For simple maths
+
+// Delta time.
+Timer dt;
+float deltaTime = 0.0f;
 
 // Forward declarations
 void InitWindow(HINSTANCE hInstance);
@@ -88,6 +97,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     MSG msg = {0};
     while (msg.message != WM_QUIT)
     {
+        deltaTime = dt.Mark();
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             TranslateMessage(&msg);
@@ -474,13 +484,17 @@ void InitDirect3D()
         XMVECTOR eye = XMVectorSet(1.0f, 0.0f, 1.0f, 0.0f);
         XMVECTOR focus = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
         XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+        XMVECTOR camPos = XMLoadFloat3(&cameraPos);
+        XMVECTOR camFront = XMLoadFloat3(&cameraFront);
+        XMVECTOR camUp = XMLoadFloat3(&cameraUp);
         ConstantBuffer cb;
         for(unsigned int i = 0; i < 10; i++)
         {
             cb.transform = XMMatrixTranspose(
                     XMMatrixRotationX(XMConvertToRadians(55.0f)) *                                      // model
                     XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z) *   // model translation
-                    XMMatrixLookAtLH(eye, focus, up) *                                                  // view  
+                    XMMatrixLookAtLH(camPos, camPos + camFront, camUp) *                                // view  
                     XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
                 );
             g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
@@ -506,11 +520,15 @@ void Render(float angle)
     // Camera setup.
     const float radius = 10.0f;
     float camX = (float)sin(angle) * radius;
-    float camZ = (float)cos(angle) * radius;
+    float camZ = (float)cos(angle) * -radius;
 
     XMVECTOR eye = XMVectorSet(camX, 0.0f, camZ, 0.0f);
     XMVECTOR focus = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
     XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+    XMVECTOR camPos = XMLoadFloat3(&cameraPos);
+    XMVECTOR camFront = XMLoadFloat3(&cameraFront);
+    XMVECTOR camUp = XMLoadFloat3(&cameraUp);
 
     // Render boxes.
     for(unsigned int i = 0; i < 10; i++)
@@ -520,15 +538,15 @@ void Render(float angle)
                          XMMatrixRotationY(XMConvertToRadians(angle * 20.0f * i)) *
                          XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z);
         // Camera/viewspace matrix.
-        XMMATRIX view = XMMatrixLookAtLH(eye, focus, up);
+        XMMATRIX view = XMMatrixLookAtLH(camPos, camPos + camFront, camUp);
         // Projection matrix.
         XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f);
                          
         g_transform = XMMatrixTranspose(
-                    model *
-                    view *
-                    projection
-                );
+                        model * 
+                        view  * 
+                        projection
+                    );
 
         // Supply vertex shader constant data.
         ConstantBuffer cb;
@@ -542,8 +560,30 @@ void Render(float angle)
 
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    Timer timer;
+    const float cameraSpeed = 5.0f * deltaTime;
     switch (uMsg)
     {
+       case WM_KEYDOWN:
+       {
+            if (wParam == VK_UP)
+            {
+                cameraPos.z -= cameraSpeed;
+            }
+            if(wParam == VK_DOWN)
+            {
+                cameraPos.z += cameraSpeed;
+            }
+            if(wParam == VK_LEFT)
+            {
+                cameraPos.x += cameraSpeed;
+            }
+            if(wParam == VK_RIGHT)
+            {
+                cameraPos.x -= cameraSpeed;
+            }
+            break; 
+       }
         case WM_DESTROY:
         {
             PostQuitMessage(0);

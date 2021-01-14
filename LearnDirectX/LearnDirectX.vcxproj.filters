@@ -25,7 +25,7 @@
       <Filter>DDSTextureLoader</Filter>
     </ClCompile>
     <ClCompile Include="Timer.cpp">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
