@@ -498,16 +498,8 @@ void InitDirect3D()
         XMVECTOR camUp = XMLoadFloat3(&cameraUp);
 
         ConstantBuffer cb;
-        for(unsigned int i = 0; i < 10; i++)
-        {
-            cb.transform = XMMatrixTranspose(
-                    XMMatrixRotationX(XMConvertToRadians(55.0f)) *                                      // model
-                    XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z) *   // model translation
-                    XMMatrixLookAtLH(camPos, camPos + camFront, camUp) *                                // view  
-                    XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
-                );
-            g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-        }
+        cb.transform = XMMatrixIdentity();
+        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
     }
 }
