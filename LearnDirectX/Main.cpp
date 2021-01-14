@@ -570,7 +570,7 @@ void Render(float angle)
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     Timer timer;
-    float cameraSpeed = 5.0f * deltaTime;
+    float cameraSpeed = 8.0f * deltaTime;
     switch (uMsg)
     {
         case WM_KEYDOWN:
@@ -591,6 +591,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
             if(wParam == 'A')
             {
+                // Vectors required to perform math operations.
                 XMVECTOR camPos = XMLoadFloat3(&cameraPos);
                 XMVECTOR camFront = XMLoadFloat3(&cameraFront);
                 XMVECTOR camUp = XMLoadFloat3(&cameraUp);
@@ -598,8 +599,10 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
                 camPos = XMVector3Normalize(XMVector3Cross(camFront, camUp));
 
+                // Sum of vector operation stored in float.
                 XMStoreFloat3(&finalPos, camPos);
 
+                // 'finalPos' float now serves it purposes to adjust the actual camera floating points/coords.
                 cameraPos.x += finalPos.x * cameraSpeed;
                 cameraPos.y += finalPos.y * cameraSpeed;
                 cameraPos.z += finalPos.z * cameraSpeed;
@@ -607,6 +610,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
             if(wParam == 'D')
             {
+                // Vectors required to perform math operations.
                 XMVECTOR camPos = XMLoadFloat3(&cameraPos);
                 XMVECTOR camFront = XMLoadFloat3(&cameraFront);
                 XMVECTOR camUp = XMLoadFloat3(&cameraUp);
@@ -614,8 +618,10 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
                 camPos = XMVector3Normalize(XMVector3Cross(camFront, camUp));
 
+                // Sum of vector operation stored in float.
                 XMStoreFloat3(&finalPos, camPos);
 
+                // 'finalPos' float now serves it purposes to adjust the actual camera floating points/coords.
                 cameraPos.x -= finalPos.x * cameraSpeed;
                 cameraPos.y -= finalPos.y * cameraSpeed;
                 cameraPos.z -= finalPos.z * cameraSpeed;
@@ -650,7 +656,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             lastX = xpos;
             lastY = ypos;
 
-            float sensitivity = 0.1f; // change this value to your liking
+            float sensitivity = 0.3f; // change this value to your liking
             xoffset *= sensitivity;
             yoffset *= sensitivity;
 
