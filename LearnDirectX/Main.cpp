@@ -42,9 +42,10 @@ XMFLOAT3 cubePositions[] = {
         };
 
 // Camera
-XMFLOAT3 cameraPos = {0.0f, 0.0f, 3.0f};
-XMFLOAT3 cameraFront = {0.0f, 0.0f, -1.0f};
-XMFLOAT3 cameraUp = {0.0f, 1.0f, 0.0f};
+XMFLOAT3 cameraPos = XMFLOAT3(0.0f, 0.0f, 3.0f);
+XMFLOAT3 cameraFront = XMFLOAT3(0.0f, 0.0f, -1.0f);
+XMFLOAT3 cameraUp = XMFLOAT3(0.0f, 1.0f, 0.0f);
+XMFLOAT3 finalPos = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 bool firstMouse = true;
 float yaw = 90.0f;
@@ -495,6 +496,7 @@ void InitDirect3D()
         XMVECTOR camPos = XMLoadFloat3(&cameraPos);
         XMVECTOR camFront = XMLoadFloat3(&cameraFront);
         XMVECTOR camUp = XMLoadFloat3(&cameraUp);
+
         ConstantBuffer cb;
         for(unsigned int i = 0; i < 10; i++)
         {
@@ -502,7 +504,7 @@ void InitDirect3D()
                     XMMatrixRotationX(XMConvertToRadians(55.0f)) *                                      // model
                     XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z) *   // model translation
                     XMMatrixLookAtLH(camPos, camPos + camFront, camUp) *                                // view  
-                    XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
+                    XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
                 );
             g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
         }
@@ -547,7 +549,7 @@ void Render(float angle)
         // Camera/viewspace matrix.
         XMMATRIX view = XMMatrixLookAtLH(camPos, camPos + camFront, camUp);
         // Projection matrix.
-        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f);
+        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), 800.0f / 600.0f, 0.1f, 100.f);
                          
         g_transform = XMMatrixTranspose(
                         model * 
@@ -568,26 +570,55 @@ void Render(float angle)
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     Timer timer;
-    const float cameraSpeed = 5.0f * deltaTime;
+    float cameraSpeed = 5.0f * deltaTime;
     switch (uMsg)
     {
         case WM_KEYDOWN:
         {
             if (wParam == 'W')
-            {
-                cameraPos.z -= cameraSpeed;
+            { 
+                XMVECTOR speed = XMLoadFloat(&cameraSpeed);
+                cameraPos.x += cameraFront.x * cameraSpeed;
+                cameraPos.y += cameraFront.y * cameraSpeed;
+                cameraPos.z += cameraFront.z * cameraSpeed;
             }
             if(wParam == 'S')
             {
-                cameraPos.z += cameraSpeed;
+                XMVECTOR speed = XMLoadFloat(&cameraSpeed);
+                cameraPos.x -= cameraFront.x * cameraSpeed;
+                cameraPos.y -= cameraFront.y * cameraSpeed;
+                cameraPos.z -= cameraFront.z * cameraSpeed;
             }
             if(wParam == 'A')
             {
-                cameraPos.x += cameraSpeed;
+                XMVECTOR camPos = XMLoadFloat3(&cameraPos);
+                XMVECTOR camFront = XMLoadFloat3(&cameraFront);
+                XMVECTOR camUp = XMLoadFloat3(&cameraUp);
+                XMVECTOR speed = XMLoadFloat(&cameraSpeed);
+
+                camPos = XMVector3Normalize(XMVector3Cross(camFront, camUp));
+
+                XMStoreFloat3(&finalPos, camPos);
+
+                cameraPos.x += finalPos.x * cameraSpeed;
+                cameraPos.y += finalPos.y * cameraSpeed;
+                cameraPos.z += finalPos.z * cameraSpeed;
+                
             }
             if(wParam == 'D')
             {
-                cameraPos.x -= cameraSpeed;
+                XMVECTOR camPos = XMLoadFloat3(&cameraPos);
+                XMVECTOR camFront = XMLoadFloat3(&cameraFront);
+                XMVECTOR camUp = XMLoadFloat3(&cameraUp);
+                XMVECTOR speed = XMLoadFloat(&cameraSpeed);
+
+                camPos = XMVector3Normalize(XMVector3Cross(camFront, camUp));
+
+                XMStoreFloat3(&finalPos, camPos);
+
+                cameraPos.x -= finalPos.x * cameraSpeed;
+                cameraPos.y -= finalPos.y * cameraSpeed;
+                cameraPos.z -= finalPos.z * cameraSpeed;
             }
             break;
         }
@@ -636,6 +667,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             front.x = (float)cos(XMConvertToRadians(yaw)) * (float)cos(XMConvertToRadians(pitch));
             front.y = (float)sin(XMConvertToRadians(pitch));
             front.z = (float)sin(XMConvertToRadians(yaw)) * (float)cos(XMConvertToRadians(pitch));
+            //XMVECTOR frontFinal = XMLoadFloat3(&front);
             cameraFront = front;
             return 0;
         }
