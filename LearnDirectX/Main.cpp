@@ -96,7 +96,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         else
         {
             // Render loop.
-            Update(timer.Peek());
+            //Update(timer.Peek());
             Render(timer.Peek());
         }
     }
@@ -289,7 +289,7 @@ void InitDirect3D()
 
     Vertex vertices[] =
     {
-        // Position               // Texture            // Color
+        // Position                         // Texture
         { XMFLOAT3( -0.5f, 0.5f, -0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
         { XMFLOAT3(  0.5f, 0.5f, -0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
         { XMFLOAT3(  0.5f, 0.5f, 0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
@@ -471,13 +471,16 @@ void InitDirect3D()
         // Initialize the constant.  
         // TODO: calculate this in a way where there are seperate contants...
         // i.e. some of these don't need to constantly change (see DX samples).
+        XMVECTOR eye = XMVectorSet(1.0f, 0.0f, 1.0f, 0.0f);
+        XMVECTOR focus = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+        XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
         ConstantBuffer cb;
         for(unsigned int i = 0; i < 10; i++)
         {
             cb.transform = XMMatrixTranspose(
                     XMMatrixRotationX(XMConvertToRadians(55.0f)) *                                      // model
                     XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z) *   // model translation
-                    XMMatrixTranslation(0.0f, 0.0f, -0.3f) *                                            // view  
+                    XMMatrixLookAtLH(eye, focus, up) *                                                  // view  
                     XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
                 );
             g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
@@ -500,17 +503,34 @@ void Render(float angle)
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
 
+    // Camera setup.
+    const float radius = 10.0f;
+    float camX = (float)sin(angle) * radius;
+    float camZ = (float)cos(angle) * radius;
+
+    XMVECTOR eye = XMVectorSet(camX, 0.0f, camZ, 0.0f);
+    XMVECTOR focus = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+    XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+    // Render boxes.
     for(unsigned int i = 0; i < 10; i++)
     {
+        // Model matrix.
+        XMMATRIX model = XMMatrixRotationX(XMConvertToRadians(angle * 20.0f * i)) *
+                         XMMatrixRotationY(XMConvertToRadians(angle * 20.0f * i)) *
+                         XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z);
+        // Camera/viewspace matrix.
+        XMMATRIX view = XMMatrixLookAtLH(eye, focus, up);
+        // Projection matrix.
+        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f);
+                         
         g_transform = XMMatrixTranspose(
-                    XMMatrixRotationX(XMConvertToRadians(angle * 20.0f * i)) *                               // model
-                    XMMatrixRotationY(XMConvertToRadians(angle * 20.0f * i)) *                               // model
-                    XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z) *   // model translation
-                    XMMatrixTranslation(0.0f,0.0f, 3.0f) *                                              // view 
-                    XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), 800.0f / 600.0f, 0.1f, 100.f)   // projection
+                    model *
+                    view *
+                    projection
                 );
 
-                 // Supply vertex shader constant data.
+        // Supply vertex shader constant data.
         ConstantBuffer cb;
         cb.transform = g_transform;
         g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );

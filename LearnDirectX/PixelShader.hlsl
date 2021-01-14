@@ -11,7 +11,6 @@ float4 PSmain(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
     tex1 = txDiffuse[0].Sample(samLinear, tex);
     tex2 = txDiffuse[1].Sample(samLinear, tex);
     
-    // Linearly interpolate between both textures (80% container, 20% awesomeface).
     FinalColor = tex1 + tex2 / 2;
     
     return FinalColor;
