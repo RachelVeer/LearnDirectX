@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include <windowsx.h>
 #include <wrl.h>
 
 #include <dxgi.h>
@@ -44,6 +45,12 @@ XMFLOAT3 cubePositions[] = {
 XMFLOAT3 cameraPos = {0.0f, 0.0f, 3.0f};
 XMFLOAT3 cameraFront = {0.0f, 0.0f, -1.0f};
 XMFLOAT3 cameraUp = {0.0f, 1.0f, 0.0f};
+
+bool firstMouse = true;
+float yaw = 90.0f;
+float pitch = 0.0f;
+float lastX = 800.0f / 2.0f;
+float lastY = 600.0f / 2.0f;
 
 // Globals.
 HWND g_hWnd = nullptr;
@@ -564,26 +571,74 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     const float cameraSpeed = 5.0f * deltaTime;
     switch (uMsg)
     {
-       case WM_KEYDOWN:
-       {
-            if (wParam == VK_UP)
+        case WM_KEYDOWN:
+        {
+            if (wParam == 'W')
             {
                 cameraPos.z -= cameraSpeed;
             }
-            if(wParam == VK_DOWN)
+            if(wParam == 'S')
             {
                 cameraPos.z += cameraSpeed;
             }
-            if(wParam == VK_LEFT)
+            if(wParam == 'A')
             {
                 cameraPos.x += cameraSpeed;
             }
-            if(wParam == VK_RIGHT)
+            if(wParam == 'D')
             {
                 cameraPos.x -= cameraSpeed;
             }
-            break; 
-       }
+            break;
+        }
+        case WM_LBUTTONDOWN:
+        {
+            SetCapture(hWnd);
+            break;
+        }
+        case WM_LBUTTONUP:
+        {
+            ReleaseCapture();
+            break;
+        }
+        case WM_MOUSEMOVE:
+        {
+            //SetCapture(hWnd);
+            float xpos = (float)GET_X_LPARAM(lParam); 
+            float ypos = (float)GET_Y_LPARAM(lParam);
+
+             if (firstMouse)
+            {
+                lastX = xpos;
+                lastY = ypos;
+                firstMouse = false;
+            }
+
+            float xoffset = xpos - lastX;
+            float yoffset = ypos - lastY; // reversed since y-coordinates go from bottom to top
+            lastX = xpos;
+            lastY = ypos;
+
+            float sensitivity = 0.1f; // change this value to your liking
+            xoffset *= sensitivity;
+            yoffset *= sensitivity;
+
+            yaw -= xoffset;
+            pitch -= yoffset;
+
+            // make sure that when pitch is out of bounds, screen doesn't get flipped
+            if (pitch > 89.0f)
+                pitch = 89.0f;
+            if (pitch < -89.0f)
+                pitch = -89.0f;
+
+            XMFLOAT3 front;
+            front.x = (float)cos(XMConvertToRadians(yaw)) * (float)cos(XMConvertToRadians(pitch));
+            front.y = (float)sin(XMConvertToRadians(pitch));
+            front.z = (float)sin(XMConvertToRadians(yaw)) * (float)cos(XMConvertToRadians(pitch));
+            cameraFront = front;
+            return 0;
+        }
         case WM_DESTROY:
         {
             PostQuitMessage(0);
