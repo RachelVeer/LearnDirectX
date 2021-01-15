@@ -8,9 +8,10 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 
+#include "DDSTextureLoader11.h"
 #include "Timer.h"
 #include "Shader.h"
-#include "DDSTextureLoader11.h"
+#include "Camera.h"
 
 #include <array> // for std::size
 
@@ -23,7 +24,7 @@
 using namespace DirectX;
 
 // Structures
- struct ConstantBuffer
+struct ConstantBuffer
 {
     XMMATRIX transform;
 };
@@ -42,16 +43,10 @@ XMFLOAT3 cubePositions[] = {
         };
 
 // Camera
-XMFLOAT3 cameraPos = XMFLOAT3(0.0f, 0.0f, 3.0f);
-XMFLOAT3 cameraFront = XMFLOAT3(0.0f, 0.0f, -1.0f);
-XMFLOAT3 cameraUp = XMFLOAT3(0.0f, 1.0f, 0.0f);
-XMFLOAT3 finalPos = XMFLOAT3(0.0f, 0.0f, 0.0f);
-
-bool firstMouse = true;
-float yaw = 90.0f;
-float pitch = 0.0f;
+Camera camera(XMFLOAT3(0.0f, 0.0f, 3.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f));
 float lastX = 800.0f / 2.0f;
 float lastY = 600.0f / 2.0f;
+bool firstMouse = true;
 
 // Globals.
 HWND g_hWnd = nullptr;
@@ -106,6 +101,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     while (msg.message != WM_QUIT)
     {
         deltaTime = dt.Mark();
+        float angle = timer.Peek();
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             TranslateMessage(&msg);
@@ -115,7 +111,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         {
             // Render loop.
             //Update(timer.Peek());
-            Render(timer.Peek());
+            Render(angle);
         }
     }
 
@@ -488,11 +484,8 @@ void InitDirect3D()
         // Initialize the constant.  
         // TODO: calculate this in a way where there are seperate contants...
         // i.e. some of these don't need to constantly change (see DX samples).
-        XMVECTOR camPos = XMLoadFloat3(&cameraPos);
-        XMVECTOR camFront = XMLoadFloat3(&cameraFront);
-        XMVECTOR camUp = XMLoadFloat3(&cameraUp);
 
-        ConstantBuffer cb;
+        ConstantBuffer cb = {};
         cb.transform = XMMatrixIdentity();
         g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
@@ -518,10 +511,6 @@ void Render(float angle)
     float camX = (float)sin(angle) * radius;
     float camZ = (float)cos(angle) * -radius;
 
-    XMVECTOR camPos = XMLoadFloat3(&cameraPos);
-    XMVECTOR camFront = XMLoadFloat3(&cameraFront);
-    XMVECTOR camUp = XMLoadFloat3(&cameraUp);
-
     // Render boxes.
     for(unsigned int i = 0; i < 10; i++)
     {
@@ -530,7 +519,7 @@ void Render(float angle)
                          XMMatrixRotationY(XMConvertToRadians(angle * 20.0f * i)) *
                          XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z);
         // Camera/viewspace matrix.
-        XMMATRIX view = XMMatrixLookAtLH(camPos, camPos + camFront, camUp);
+        XMMATRIX view = camera.GetViewMatrix();
         // Projection matrix.
         XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), 800.0f / 600.0f, 0.1f, 100.f);
                          
@@ -541,7 +530,7 @@ void Render(float angle)
                     );
 
         // Supply vertex shader constant data.
-        ConstantBuffer cb;
+        ConstantBuffer cb = {};
         cb.transform = g_transform;
         g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
         g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
@@ -552,61 +541,26 @@ void Render(float angle)
 
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    float cameraSpeed = 8.0f * deltaTime;
     switch (uMsg)
     {
         case WM_KEYDOWN:
         {
             if (wParam == 'W')
             { 
-                XMVECTOR speed = XMLoadFloat(&cameraSpeed);
-                cameraPos.x += cameraFront.x * cameraSpeed;
-                cameraPos.y += cameraFront.y * cameraSpeed;
-                cameraPos.z += cameraFront.z * cameraSpeed;
+                camera.ProcessKeyboard(FORWARD, deltaTime);
             }
             if(wParam == 'S')
             {
-                XMVECTOR speed = XMLoadFloat(&cameraSpeed);
-                cameraPos.x -= cameraFront.x * cameraSpeed;
-                cameraPos.y -= cameraFront.y * cameraSpeed;
-                cameraPos.z -= cameraFront.z * cameraSpeed;
+                camera.ProcessKeyboard(BACKWARD, deltaTime);
             }
             if(wParam == 'A')
             {
-                // Vectors required to perform math operations.
-                XMVECTOR camPos = XMLoadFloat3(&cameraPos);
-                XMVECTOR camFront = XMLoadFloat3(&cameraFront);
-                XMVECTOR camUp = XMLoadFloat3(&cameraUp);
-                XMVECTOR speed = XMLoadFloat(&cameraSpeed);
-
-                camPos = XMVector3Normalize(XMVector3Cross(camFront, camUp));
-
-                // Sum of vector operation stored in float.
-                XMStoreFloat3(&finalPos, camPos);
-
-                // 'finalPos' float now serves it purposes to adjust the actual camera floating points/coords.
-                cameraPos.x += finalPos.x * cameraSpeed;
-                cameraPos.y += finalPos.y * cameraSpeed;
-                cameraPos.z += finalPos.z * cameraSpeed;
+                camera.ProcessKeyboard(LEFT, deltaTime);
                 
             }
             if(wParam == 'D')
             {
-                // Vectors required to perform math operations.
-                XMVECTOR camPos = XMLoadFloat3(&cameraPos);
-                XMVECTOR camFront = XMLoadFloat3(&cameraFront);
-                XMVECTOR camUp = XMLoadFloat3(&cameraUp);
-                XMVECTOR speed = XMLoadFloat(&cameraSpeed);
-
-                camPos = XMVector3Normalize(XMVector3Cross(camFront, camUp));
-
-                // Sum of vector operation stored in float.
-                XMStoreFloat3(&finalPos, camPos);
-
-                // 'finalPos' float now serves it purposes to adjust the actual camera floating points/coords.
-                cameraPos.x -= finalPos.x * cameraSpeed;
-                cameraPos.y -= finalPos.y * cameraSpeed;
-                cameraPos.z -= finalPos.z * cameraSpeed;
+               camera.ProcessKeyboard(RIGHT, deltaTime);
             }
             break;
         }
@@ -622,41 +576,23 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
         case WM_MOUSEMOVE:
         {
-            //SetCapture(hWnd);
             float xpos = (float)GET_X_LPARAM(lParam); 
             float ypos = (float)GET_Y_LPARAM(lParam);
-
-             if (firstMouse)
+            
+            if (firstMouse)
             {
                 lastX = xpos;
                 lastY = ypos;
                 firstMouse = false;
             }
-
+            
             float xoffset = xpos - lastX;
-            float yoffset = ypos - lastY; // reversed since y-coordinates go from bottom to top
+            float yoffset = ypos - lastY;
+            
             lastX = xpos;
             lastY = ypos;
 
-            float sensitivity = 0.3f; // change this value to your liking
-            xoffset *= sensitivity;
-            yoffset *= sensitivity;
-
-            yaw -= xoffset;
-            pitch -= yoffset;
-
-            // make sure that when pitch is out of bounds, screen doesn't get flipped
-            if (pitch > 89.0f)
-                pitch = 89.0f;
-            if (pitch < -89.0f)
-                pitch = -89.0f;
-
-            XMFLOAT3 front;
-            front.x = (float)cos(XMConvertToRadians(yaw)) * (float)cos(XMConvertToRadians(pitch));
-            front.y = (float)sin(XMConvertToRadians(pitch));
-            front.z = (float)sin(XMConvertToRadians(yaw)) * (float)cos(XMConvertToRadians(pitch));
-            //XMVECTOR frontFinal = XMLoadFloat3(&front);
-            cameraFront = front;
+            camera.ProcessMouseMovement(xoffset, yoffset);
             return 0;
         }
         case WM_DESTROY:

@@ -103,6 +103,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="DDSTextureLoader11.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Timer.h" />
