@@ -470,8 +470,7 @@ void InitDirect3D()
         g_ImmediateContext->PSSetSamplers(0, 1, g_SamplerState.GetAddressOf());
     }
 
-    // TODO: do this better...
-    // i.e. not create the buffer every frame.
+
     // Constant buffer
     {
         // Fill in the buffer description.
@@ -489,10 +488,6 @@ void InitDirect3D()
         // Initialize the constant.  
         // TODO: calculate this in a way where there are seperate contants...
         // i.e. some of these don't need to constantly change (see DX samples).
-        XMVECTOR eye = XMVectorSet(1.0f, 0.0f, 1.0f, 0.0f);
-        XMVECTOR focus = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-        XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
         XMVECTOR camPos = XMLoadFloat3(&cameraPos);
         XMVECTOR camFront = XMLoadFloat3(&cameraFront);
         XMVECTOR camUp = XMLoadFloat3(&cameraUp);
@@ -522,10 +517,6 @@ void Render(float angle)
     const float radius = 10.0f;
     float camX = (float)sin(angle) * radius;
     float camZ = (float)cos(angle) * -radius;
-
-    XMVECTOR eye = XMVectorSet(camX, 0.0f, camZ, 0.0f);
-    XMVECTOR focus = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-    XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
     XMVECTOR camPos = XMLoadFloat3(&cameraPos);
     XMVECTOR camFront = XMLoadFloat3(&cameraFront);
@@ -561,7 +552,6 @@ void Render(float angle)
 
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    Timer timer;
     float cameraSpeed = 8.0f * deltaTime;
     switch (uMsg)
     {
