@@ -42,12 +42,6 @@ XMFLOAT3 cubePositions[] = {
             XMFLOAT3(-1.3f,  1.0f, 1.5f) 
         };
 
-// Camera
-Camera camera(XMFLOAT3(0.0f, 0.0f, 3.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f));
-float lastX = 800.0f / 2.0f;
-float lastY = 600.0f / 2.0f;
-bool firstMouse = true;
-
 // Globals.
 HWND g_hWnd = nullptr;
 LPCTSTR g_windowClass = L"Learn DirectX Class";
@@ -71,6 +65,9 @@ Microsoft::WRL::ComPtr<ID3D11DepthStencilView> g_DSV;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_ConstantBuffer;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_ConstantBuffer2;
 
+float g_width = 1600.0f;
+float g_height = 900.0f;
+
 UINT g_verticesSize = 0;
 UINT g_indexCount = 0;
 
@@ -82,6 +79,12 @@ Timer timer; // For simple maths
 // Delta time.
 Timer dt;
 float deltaTime = 0.0f;
+
+// Camera
+Camera camera(XMFLOAT3(0.0f, 0.0f, 3.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f));
+float lastX = g_width / 2.0f;
+float lastY = g_height / 2.0f;
+bool firstMouse = true;
 
 // Forward declarations
 void InitWindow(HINSTANCE hInstance);
@@ -145,8 +148,8 @@ void InitWindow(HINSTANCE hInstance)
         L"Learn DirectX",
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT,
-        800,
-        600,
+        (int)g_width,
+        (int)g_height,
         nullptr,
         nullptr,
         hInstance,
@@ -164,8 +167,8 @@ void InitDirect3D()
     DXGI_SWAP_CHAIN_DESC1 sd = {};
     SecureZeroMemory(&sd, sizeof(sd));
     sd.BufferCount = 2;
-    sd.Width = 800;
-    sd.Height = 600;
+    sd.Width = (UINT)g_width;
+    sd.Height = (UINT)g_height;
     sd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.SampleDesc.Count = 1;
@@ -237,8 +240,8 @@ void InitDirect3D()
 
         // Create depth stencil texture.
         D3D11_TEXTURE2D_DESC descDepth = {};
-        descDepth.Width = 800u;
-        descDepth.Height = 600u;
+        descDepth.Width = (UINT)g_width;
+        descDepth.Height = (UINT)g_height;
         descDepth.MipLevels = 1u;
         descDepth.ArraySize = 1u;
         descDepth.Format = DXGI_FORMAT_D32_FLOAT;
@@ -262,8 +265,8 @@ void InitDirect3D()
 
     // Setup viewport.
     D3D11_VIEWPORT vp = {};
-    vp.Width = 800;
-    vp.Height = 600;
+    vp.Width = g_width;
+    vp.Height = g_height;
     vp.MinDepth = 0.0f;
     vp.MaxDepth = 1.0f;
     vp.TopLeftX = 0;
@@ -506,11 +509,6 @@ void Render(float angle)
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
 
-    // Camera setup.
-    const float radius = 10.0f;
-    float camX = (float)sin(angle) * radius;
-    float camZ = (float)cos(angle) * -radius;
-
     // Render boxes.
     for(unsigned int i = 0; i < 10; i++)
     {
@@ -521,7 +519,7 @@ void Render(float angle)
         // Camera/viewspace matrix.
         XMMATRIX view = camera.GetViewMatrix();
         // Projection matrix.
-        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), 800.0f / 600.0f, 0.1f, 100.f);
+        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
                          
         g_transform = XMMatrixTranspose(
                         model * 
