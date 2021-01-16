@@ -101,19 +101,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // Message loop.
     MSG msg = {0};
-    while (msg.message != WM_QUIT)
+    while (true)
     {
         deltaTime = dt.Mark();
         float angle = timer.Peek();
-        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
+            // Check for quit because peekmessage does not signal this via return value.
+		    if( msg.message == WM_QUIT )
+		    {
+			    // Return int (arg to PostQuitMessage is in wparam) signals quit.
+			    return (int)msg.wParam;
+		    }
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        else
+        // Render loop.
         {
-            // Render loop.
-            //Update(timer.Peek());
             Render(angle);
         }
     }
