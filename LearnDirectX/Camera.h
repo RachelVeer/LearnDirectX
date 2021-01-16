@@ -15,6 +15,7 @@ enum CameraMovement {
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
 const float SPEED = 5.5f;
+const float SENSITIVITY = 0.5f;
 
 class Camera
 {
@@ -23,27 +24,27 @@ class Camera
     DirectX::XMFLOAT3 Position;
     DirectX::XMFLOAT3 Front;
     DirectX::XMFLOAT3 Up;
-    DirectX::XMFLOAT3 FinalPos;
+    DirectX::XMFLOAT3 Right;
+    DirectX::XMFLOAT3 WorldUp;
     // Euler angles.
     float Yaw;
     float Pitch;
     // Camera Options
     float MovementSpeed;
+    float MouseSensitiviy;
 
     // Constructor with vectors.
     Camera(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 up, DirectX::XMFLOAT3 front, float yaw = YAW, float pitch = PITCH)
-    : Position(position), Up(up), Front(up), FinalPos(DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f)), Yaw(yaw), Pitch(pitch), MovementSpeed(SPEED)
+    : Position(position), Up(up), Front(front), Right(DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f)), Yaw(yaw), Pitch(pitch), MovementSpeed(SPEED), MouseSensitiviy(SENSITIVITY)
     {
+        WorldUp = up;
         UpdateCameraVectors();
     }
 
     // Returns the view matrix calculated using Euler Angles & LookAtLH Matrix.
     DirectX::XMMATRIX GetViewMatrix()
     {
-        DirectX::XMVECTOR camPos = XMLoadFloat3(&Position);
-        DirectX::XMVECTOR camFront = XMLoadFloat3(&Front);
-        DirectX::XMVECTOR camUp = XMLoadFloat3(&Up);
-        return DirectX::XMMatrixLookAtLH(camPos, DirectX::XMVectorAdd(camPos, camFront), camUp);
+        return DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&Position), DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&Position), DirectX::XMLoadFloat3(&Front)), DirectX::XMLoadFloat3(&Up));
     }
 
     void ProcessKeyboard(CameraMovement direction, float deltaTime)
@@ -63,39 +64,22 @@ class Camera
         }
         if(direction == LEFT)
         {
-            // Vectors required to perform math operations.
-            DirectX::XMVECTOR camPos = DirectX::XMLoadFloat3(&Position);
-            DirectX::XMVECTOR camFront = DirectX::XMLoadFloat3(&Front);
-            DirectX::XMVECTOR camUp = DirectX::XMLoadFloat3(&Up);
-            camPos = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(camFront, camUp));
-            // Sum of vector operation stored in float.
-            DirectX::XMStoreFloat3(&FinalPos, camPos);
-            // 'finalPos' float now serves it purposes to adjust the actual camera floating points/coords.
-            Position.x += FinalPos.x * velocity;
-            Position.y += FinalPos.y * velocity;
-            Position.z += FinalPos.z * velocity;
+            Position.x += Right.x * velocity;
+            Position.y += Right.y * velocity;
+            Position.z += Right.z * velocity;
         }
         if(direction == RIGHT)
         {
-            // Vectors required to perform math operations.
-            DirectX::XMVECTOR camPos = DirectX::XMLoadFloat3(&Position);
-            DirectX::XMVECTOR camFront = DirectX::XMLoadFloat3(&Front);
-            DirectX::XMVECTOR camUp = DirectX::XMLoadFloat3(&Up);
-            camPos = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(camFront, camUp));
-            // Sum of vector operation stored in float.
-            DirectX::XMStoreFloat3(&FinalPos, camPos);
-            // 'finalPos' float now serves it purposes to adjust the actual camera floating points/coords.
-            Position.x -= FinalPos.x * velocity;
-            Position.y -= FinalPos.y * velocity;
-            Position.z -= FinalPos.z * velocity;
+            Position.x -= Right.x * velocity;
+            Position.y -= Right.y * velocity;
+            Position.z -= Right.z * velocity;
         }
     }
 
     void ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch = true)
     {
-        float sensitivity = 0.3f; // change this value to your liking
-        xoffset *= sensitivity;
-        yoffset *= sensitivity;
+        xoffset *= MouseSensitiviy;
+        yoffset *= MouseSensitiviy;
         Yaw -= xoffset;
         Pitch -= yoffset;
         // make sure that when pitch is out of bounds, screen doesn't get flipped
@@ -116,6 +100,19 @@ class Camera
         updatedFront.y = (float)sin(DirectX::XMConvertToRadians(Pitch));
         updatedFront.z = (float)sin(DirectX::XMConvertToRadians(Yaw)) * (float)cos(DirectX::XMConvertToRadians(Pitch));
         Front = updatedFront;
+
+        // Also re-calculate the Right and Up vector. 
+        // Vectors required to perform math operations.
+        DirectX::XMVECTOR right;
+        DirectX::XMVECTOR camFront = DirectX::XMLoadFloat3(&Front);
+        DirectX::XMVECTOR worldUp = DirectX::XMLoadFloat3(&WorldUp);
+        right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(camFront, worldUp));
+        // Sum of vector operation stored in float.
+        DirectX::XMStoreFloat3(&Right, right);
+
+        DirectX::XMVECTOR up;
+        up = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(DirectX::XMLoadFloat3(&Right), DirectX::XMLoadFloat3(&Front)));
+        DirectX::XMStoreFloat3(&Up, up);
     }
 
 };
