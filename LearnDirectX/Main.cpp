@@ -86,10 +86,16 @@ float lastX = g_width / 2.0f;
 float lastY = g_height / 2.0f;
 bool firstMouse = true;
 
+// Key input logic.
+bool moveForward;
+bool moveBackward;
+bool moveLeft;
+bool moveRight;
+
 // Forward declarations
 void InitWindow(HINSTANCE hInstance);
 void InitDirect3D();
-void Update(float angle);
+void ProcessInput();
 void Render(float angle);
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -105,6 +111,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     {
         deltaTime = dt.Mark();
         float angle = timer.Peek();
+        ProcessInput();
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             // Check for quit because peekmessage does not signal this via return value.
@@ -162,6 +169,9 @@ void InitWindow(HINSTANCE hInstance)
 
     // Make the window visible (it isn't, by default). 
     ShowWindow(g_hWnd, SW_SHOW);
+
+    RECT rc;
+    ClipCursor(&rc);
 }
 
 void InitDirect3D()
@@ -499,8 +509,24 @@ void InitDirect3D()
     }
 }
 
-void Update(float angle)
+void ProcessInput()
 {
+    if (moveForward)
+    { 
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    }
+    if(moveBackward)
+    {
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    }
+    if(moveLeft)
+    {
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    }
+    if(moveRight)
+    {
+       camera.ProcessKeyboard(RIGHT, deltaTime);
+    }
 }
 
 void Render(float angle)
@@ -547,22 +573,41 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         case WM_KEYDOWN:
         {
-            if (wParam == 'W')
-            { 
-                camera.ProcessKeyboard(FORWARD, deltaTime);
+            if(wParam == 'W')
+            {
+               moveForward = true;
             }
             if(wParam == 'S')
             {
-                camera.ProcessKeyboard(BACKWARD, deltaTime);
+               moveBackward = true;
             }
             if(wParam == 'A')
             {
-                camera.ProcessKeyboard(LEFT, deltaTime);
-                
+               moveLeft = true;
             }
             if(wParam == 'D')
             {
-               camera.ProcessKeyboard(RIGHT, deltaTime);
+               moveRight = true;
+            }
+            break;
+        }
+        case WM_KEYUP:
+        {
+            if(moveForward)
+            {
+                moveForward = false;
+            }
+            if(moveBackward)
+            {
+                moveBackward = false;
+            }
+            if(moveLeft)
+            {
+                moveLeft = false;
+            }
+            if(moveRight)
+            {
+                moveRight = false;
             }
             break;
         }
