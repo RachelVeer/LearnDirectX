@@ -27,6 +27,8 @@ using namespace DirectX;
 struct ConstantBuffer
 {
     XMMATRIX transform;
+    XMFLOAT4 objectColor;
+    XMFLOAT4 lightColor;
 };
 
 XMFLOAT3 cubePositions[] = {
@@ -52,8 +54,11 @@ Microsoft::WRL::ComPtr<IDXGISwapChain1> g_SwapChain;
 Microsoft::WRL::ComPtr<ID3D11RenderTargetView> g_RenderTargetView;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_VertexBuffer;
 Microsoft::WRL::ComPtr<ID3D11InputLayout> g_VertexLayout;
+Microsoft::WRL::ComPtr<ID3D11InputLayout> g_VertexLayout2;
 Microsoft::WRL::ComPtr<ID3D11VertexShader> g_VertexShader;
+Microsoft::WRL::ComPtr<ID3D11VertexShader> g_VertexShader2;
 Microsoft::WRL::ComPtr<ID3D11PixelShader> g_PixelShader;
+Microsoft::WRL::ComPtr<ID3D11PixelShader> g_PixelShader2;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_IndexBuffer;
 Microsoft::WRL::ComPtr<ID3D11Resource> g_Resource;
 Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> g_ShaderResourceView;
@@ -292,61 +297,79 @@ void InitDirect3D()
     Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
     Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 
-    Shader CompileVertex(L"VertexShader.hlsl","VSmain", "vs_4_0", &vertexShader);
-    Shader CompilePixel(L"PixelShader.hlsl","PSmain", "ps_4_0", &pixelShader);
-
-    // Create Vertex Shader.
-    g_d3dDevice->CreateVertexShader(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), nullptr, &g_VertexShader);
-    // Create Pixel Shader.
-    g_d3dDevice->CreatePixelShader(pixelShader->GetBufferPointer(), pixelShader->GetBufferSize(), nullptr, &g_PixelShader);
-    // Define Input (vertex) Layout
-    D3D11_INPUT_ELEMENT_DESC layout[] =
+    // First cube shader.
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    };
+        Shader CompileVertex(L"VertexShader.hlsl","VSmain", "vs_4_0", &vertexShader);
+        Shader CompilePixel(L"PixelShader.hlsl","PSmain", "ps_4_0", &pixelShader);
 
-    g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout);
+        // Create Vertex Shader.
+        g_d3dDevice->CreateVertexShader(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), nullptr, &g_VertexShader);
+        // Create Pixel Shader.
+        g_d3dDevice->CreatePixelShader(pixelShader->GetBufferPointer(), pixelShader->GetBufferSize(), nullptr, &g_PixelShader);
+        // Define Input (vertex) Layout
+        D3D11_INPUT_ELEMENT_DESC layout[] =
+        {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        };
+
+        g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout);
+    }
+    // Light cube shader.
+    {
+        Shader CompileVertex(L"LightVertex.hlsl","VSmain", "vs_4_0", &vertexShader);
+        Shader CompilePixel(L"LightPixel.hlsl","PSmain", "ps_4_0", &pixelShader);
+
+        // Create Vertex Shader.
+        g_d3dDevice->CreateVertexShader(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), nullptr, &g_VertexShader2);
+        // Create Pixel Shader.
+        g_d3dDevice->CreatePixelShader(pixelShader->GetBufferPointer(), pixelShader->GetBufferSize(), nullptr, &g_PixelShader2);
+
+         // Define Input (vertex) Layout
+        D3D11_INPUT_ELEMENT_DESC layout[] =
+        {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        };
+
+        g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout2);
+    }
 
     // Vertex stuff
     struct Vertex
     {
         XMFLOAT3 pos;
-        XMFLOAT2 tex;
     };
 
-    Vertex vertices[] =
-    {
-        // Position                         // Texture
-        { XMFLOAT3( -0.5f, 0.5f, -0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
-        { XMFLOAT3(  0.5f, 0.5f, -0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
-        { XMFLOAT3(  0.5f, 0.5f, 0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
-        { XMFLOAT3( -0.5f, 0.5f, 0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
+    Vertex vertices[] = {
+        // Position
+        { XMFLOAT3( -0.5f, 0.5f, -0.5f ) },
+        { XMFLOAT3(  0.5f, 0.5f, -0.5f ) },
+        { XMFLOAT3(  0.5f, 0.5f, 0.5f ) },
+        { XMFLOAT3( -0.5f, 0.5f, 0.5f )  },
 
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
-        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
-        { XMFLOAT3(  0.5f, -0.5f,  0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
-        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ) },
+        { XMFLOAT3(  0.5f, -0.5f, -0.5f ) },
+        { XMFLOAT3(  0.5f, -0.5f,  0.5f ) },
+        { XMFLOAT3( -0.5f, -0.5f,  0.5f ) },
 
-        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
-        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
-        { XMFLOAT3( -0.5f,  0.5f,  0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
+        { XMFLOAT3( -0.5f, -0.5f,  0.5f ) },
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ) },
+        { XMFLOAT3( -0.5f,  0.5f, -0.5f ) },
+        { XMFLOAT3( -0.5f,  0.5f,  0.5f ) },
 
-        { XMFLOAT3( 0.5f, -0.5f,  0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
-        { XMFLOAT3( 0.5f, -0.5f, -0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
-        { XMFLOAT3( 0.5f,  0.5f, -0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
-        { XMFLOAT3( 0.5f,  0.5f,  0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
+        { XMFLOAT3( 0.5f, -0.5f,  0.5f ) },
+        { XMFLOAT3( 0.5f, -0.5f, -0.5f ) },
+        { XMFLOAT3( 0.5f,  0.5f, -0.5f ) },
+        { XMFLOAT3( 0.5f,  0.5f,  0.5f )},
 
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
-        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
-        { XMFLOAT3(  0.5f,  0.5f, -0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
-        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ) },
+        { XMFLOAT3(  0.5f, -0.5f, -0.5f ) },
+        { XMFLOAT3(  0.5f,  0.5f, -0.5f ) },
+        { XMFLOAT3( -0.5f,  0.5f, -0.5f ) },
 
-        { XMFLOAT3( -0.5f, -0.5f, 0.5f ), XMFLOAT2( 1.0f, 1.0f ) },
-        { XMFLOAT3(  0.5f, -0.5f, 0.5f ), XMFLOAT2( 0.0f, 1.0f ) },
-        { XMFLOAT3(  0.5f,  0.5f, 0.5f ), XMFLOAT2( 0.0f, 0.0f ) },
-        { XMFLOAT3( -0.5f,  0.5f, 0.5f ), XMFLOAT2( 1.0f, 0.0f ) },
+        { XMFLOAT3( -0.5f, -0.5f, 0.5f ) },
+        { XMFLOAT3(  0.5f, -0.5f, 0.5f )},
+        { XMFLOAT3(  0.5f,  0.5f, 0.5f ) },
+        { XMFLOAT3( -0.5f,  0.5f, 0.5f )},
 
     };
 
@@ -426,6 +449,7 @@ void InitDirect3D()
 
     // Set the input layout.
     g_ImmediateContext->IASetInputLayout(g_VertexLayout.Get());
+    g_ImmediateContext->IASetInputLayout(g_VertexLayout2.Get());
 
     // Set topology.
     g_ImmediateContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -449,35 +473,6 @@ void InitDirect3D()
         UINT sampleMask = 0xffffffff;
 
         g_ImmediateContext->OMSetBlendState(g_BlendState.Get(), blendFactor, sampleMask);
-    }
-
-    // Texture stuffs
-    {
-        // Lightweight DDS file loader from the DirectX Tool Kit.
-        // Source: https://github.com/Microsoft/DirectXTK/wiki/DDSTextureLoader
-        CreateDDSTextureFromFile(g_d3dDevice.Get(), L"Assets/Textures/container.dds", &g_Resource, &g_ShaderResourceView);
-
-        // Create sample state.
-        D3D11_SAMPLER_DESC samplerDesc = {};
-        SecureZeroMemory(&samplerDesc, sizeof(samplerDesc));
-        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-        samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-        samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-        samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-        samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
-        samplerDesc.MinLOD = 0;
-        samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-        g_d3dDevice->CreateSamplerState(&samplerDesc, &g_SamplerState);
-
-        // Set shader resource for first texture.
-        g_ImmediateContext->PSSetShaderResources(0, 1, g_ShaderResourceView.GetAddressOf());
-        
-        // Create second texture & set shader resource for it.  
-        CreateDDSTextureFromFile(g_d3dDevice.Get(), L"Assets/Textures/awesomeface.dds", &g_Resource, &g_ShaderResourceView);
-        g_ImmediateContext->PSSetShaderResources(1, 1, g_ShaderResourceView.GetAddressOf());
-        
-        // Bind sampler state. 
-        g_ImmediateContext->PSSetSamplers(0, 1, g_SamplerState.GetAddressOf());
     }
 
 
@@ -536,13 +531,41 @@ void Render(float angle)
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
 
-    // Render boxes.
-    for(unsigned int i = 0; i < 10; i++)
+    // First cube.
     {
         // Model matrix.
-        XMMATRIX model = XMMatrixRotationX(XMConvertToRadians(angle * 20.0f * i)) *
-                         XMMatrixRotationY(XMConvertToRadians(angle * 20.0f * i)) *
-                         XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z);
+        XMMATRIX model = XMMatrixRotationX(XMConvertToRadians(angle * 20.0f)) *
+                         XMMatrixRotationY(XMConvertToRadians(angle * 20.0f)) *
+                         XMMatrixTranslation(1.0f, 0.0f, -1.0f);
+        // Camera/viewspace matrix.
+        XMMATRIX view = camera.GetViewMatrix();
+        // Projection matrix.
+        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
+                         
+        g_transform = XMMatrixTranspose(
+                        model * 
+                        view  * 
+                        projection
+                    );
+
+        // Supply vertex shader constant data.
+        ConstantBuffer cb = {};
+        cb.transform = g_transform;
+        cb.objectColor = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
+        cb.lightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); 
+        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
+        g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
+    }
+
+    g_ImmediateContext->VSSetShader(g_VertexShader2.Get(), nullptr, 0);
+    g_ImmediateContext->PSSetShader(g_PixelShader2.Get(), nullptr, 0);
+    // Light cube.
+    {
+        // Model matrix.
+        XMMATRIX model = XMMatrixRotationX(XMConvertToRadians(angle * 20.0f)) *
+                         XMMatrixRotationY(XMConvertToRadians(angle * 20.0f)) *
+                         XMMatrixTranslation(0.0f, 0.0f, -3.0f) *
+                         XMMatrixScaling(0.2f, 0.2f, 0.2f);
         // Camera/viewspace matrix.
         XMMATRIX view = camera.GetViewMatrix();
         // Projection matrix.
@@ -570,6 +593,11 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         case WM_KEYDOWN:
         {
+            if(wParam == VK_ESCAPE)
+            {
+                PostQuitMessage(0);
+                return 0;
+            }
             if(wParam == 'W')
             {
                moveForward = true;

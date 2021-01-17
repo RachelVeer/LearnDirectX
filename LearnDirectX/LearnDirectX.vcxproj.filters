@@ -16,6 +16,9 @@
     <Filter Include="DDSTextureLoader">
       <UniqueIdentifier>{12d4d68a-1873-46aa-b071-cb09c628cd2a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{2172729d-71ec-48db-8bbb-e3509824988f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -29,8 +32,18 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="VertexShader.hlsl" />
-    <None Include="PixelShader.hlsl" />
+    <None Include="PixelShader.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="LightPixel.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="LightVertex.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="VertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h">
