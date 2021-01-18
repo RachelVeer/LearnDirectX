@@ -14,7 +14,7 @@ enum CameraMovement {
 // Default camera values.
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
-const float SPEED = 5.5f;
+const float SPEED = 1.5f;
 const float SENSITIVITY = 0.2f;
 
 class Camera
@@ -90,6 +90,7 @@ class Camera
         
         UpdateCameraVectors();
     }
+
     private:
     // Calculate the front vector from the Camera's (updated) Euler angle.
     void UpdateCameraVectors()

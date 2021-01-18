@@ -30,6 +30,7 @@ struct ConstantBuffer
     XMMATRIX view;
     XMMATRIX projection;
     XMFLOAT4 lightPos;
+    XMFLOAT4 viewPos;
     XMFLOAT4 objectColor;
     XMFLOAT4 lightColor;
 };
@@ -547,6 +548,7 @@ void Render(float angle)
     g_ImmediateContext->VSSetShader(g_VertexShader.Get(), nullptr, 0);
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
+    g_ImmediateContext->PSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
 
     // First cube.
     {
@@ -557,13 +559,14 @@ void Render(float angle)
         XMMATRIX view = camera.GetViewMatrix();
         // Projection matrix.
         XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
-
+        
         // Supply vertex shader constant data.
         ConstantBuffer cb = {};
         cb.model = XMMatrixTranspose(model);
         cb.view = XMMatrixTranspose(view);
         cb.projection = XMMatrixTranspose(projection);
         cb.lightPos = lightPosition;
+        cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
         cb.objectColor = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
         cb.lightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); 
         g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
