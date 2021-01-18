@@ -26,7 +26,10 @@ using namespace DirectX;
 // Structures
 struct ConstantBuffer
 {
-    XMMATRIX transform;
+    XMMATRIX model;
+    XMMATRIX view;
+    XMMATRIX projection;
+    XMFLOAT4 lightPos;
     XMFLOAT4 objectColor;
     XMFLOAT4 lightColor;
 };
@@ -97,6 +100,9 @@ bool moveBackward;
 bool moveLeft;
 bool moveRight;
 
+// Lighting.
+XMFLOAT4 lightPosition = XMFLOAT4(-1.2f, 1.0f, 2.0f, 1.0f);
+
 // Forward declarations
 void InitWindow(HINSTANCE hInstance);
 void InitDirect3D();
@@ -130,7 +136,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         }
         // Render loop.
         {
-            Render(angle);
+            Render(1.0f);
         }
     }
 
@@ -310,6 +316,7 @@ void InitDirect3D()
         D3D11_INPUT_ELEMENT_DESC layout[] =
         {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
 
         g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout);
@@ -328,6 +335,7 @@ void InitDirect3D()
         D3D11_INPUT_ELEMENT_DESC layout[] =
         {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
 
         g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout2);
@@ -337,39 +345,46 @@ void InitDirect3D()
     struct Vertex
     {
         XMFLOAT3 pos;
+        XMFLOAT3 normal;
     };
 
     Vertex vertices[] = {
-        // Position
-        { XMFLOAT3( -0.5f, 0.5f, -0.5f ) },
-        { XMFLOAT3(  0.5f, 0.5f, -0.5f ) },
-        { XMFLOAT3(  0.5f, 0.5f, 0.5f ) },
-        { XMFLOAT3( -0.5f, 0.5f, 0.5f )  },
+        // Position                       // Normal vectors (perpendicular)
+        // Top
+        { XMFLOAT3( -0.5f, 0.5f, -0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+        { XMFLOAT3(  0.5f, 0.5f, -0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+        { XMFLOAT3(  0.5f, 0.5f,  0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+        { XMFLOAT3( -0.5f, 0.5f,  0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f) },
 
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ) },
-        { XMFLOAT3(  0.5f, -0.5f, -0.5f ) },
-        { XMFLOAT3(  0.5f, -0.5f,  0.5f ) },
-        { XMFLOAT3( -0.5f, -0.5f,  0.5f ) },
+        // Bottom
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f) },
+        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f) },
+        { XMFLOAT3(  0.5f, -0.5f,  0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f) },
+        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f) },
 
-        { XMFLOAT3( -0.5f, -0.5f,  0.5f ) },
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ) },
-        { XMFLOAT3( -0.5f,  0.5f, -0.5f ) },
-        { XMFLOAT3( -0.5f,  0.5f,  0.5f ) },
+        // Left
+        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
+        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
+        { XMFLOAT3( -0.5f,  0.5f,  0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
 
-        { XMFLOAT3( 0.5f, -0.5f,  0.5f ) },
-        { XMFLOAT3( 0.5f, -0.5f, -0.5f ) },
-        { XMFLOAT3( 0.5f,  0.5f, -0.5f ) },
-        { XMFLOAT3( 0.5f,  0.5f,  0.5f )},
+        // Right
+        { XMFLOAT3( 0.5f, -0.5f,  0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f)},
+        { XMFLOAT3( 0.5f, -0.5f, -0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f)},
+        { XMFLOAT3( 0.5f,  0.5f, -0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f)},
+        { XMFLOAT3( 0.5f,  0.5f,  0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f)},
 
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ) },
-        { XMFLOAT3(  0.5f, -0.5f, -0.5f ) },
-        { XMFLOAT3(  0.5f,  0.5f, -0.5f ) },
-        { XMFLOAT3( -0.5f,  0.5f, -0.5f ) },
+        // Back
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f) },
+        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f) },
+        { XMFLOAT3(  0.5f,  0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f) },
+        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f) },
 
-        { XMFLOAT3( -0.5f, -0.5f, 0.5f ) },
-        { XMFLOAT3(  0.5f, -0.5f, 0.5f )},
-        { XMFLOAT3(  0.5f,  0.5f, 0.5f ) },
-        { XMFLOAT3( -0.5f,  0.5f, 0.5f )},
+        // Front
+        { XMFLOAT3( -0.5f, -0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3(  0.5f, -0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3(  0.5f,  0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3( -0.5f,  0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f) },
 
     };
 
@@ -495,7 +510,9 @@ void InitDirect3D()
         // i.e. some of these don't need to constantly change (see DX samples).
 
         ConstantBuffer cb = {};
-        cb.transform = XMMatrixIdentity();
+        cb.model = XMMatrixIdentity();
+        cb.view = XMMatrixIdentity();
+        cb.projection = XMMatrixIdentity();
         g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
     }
@@ -534,23 +551,19 @@ void Render(float angle)
     // First cube.
     {
         // Model matrix.
-        XMMATRIX model = XMMatrixRotationX(XMConvertToRadians(angle * 20.0f)) *
-                         XMMatrixRotationY(XMConvertToRadians(angle * 20.0f)) *
-                         XMMatrixTranslation(1.0f, 0.0f, -1.0f);
+        XMMATRIX model = XMMatrixRotationX(XMConvertToRadians(angle)) *
+                         XMMatrixRotationY(XMConvertToRadians(angle));
         // Camera/viewspace matrix.
         XMMATRIX view = camera.GetViewMatrix();
         // Projection matrix.
         XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
-                         
-        g_transform = XMMatrixTranspose(
-                        model * 
-                        view  * 
-                        projection
-                    );
 
         // Supply vertex shader constant data.
         ConstantBuffer cb = {};
-        cb.transform = g_transform;
+        cb.model = XMMatrixTranspose(model);
+        cb.view = XMMatrixTranspose(view);
+        cb.projection = XMMatrixTranspose(projection);
+        cb.lightPos = lightPosition;
         cb.objectColor = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
         cb.lightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); 
         g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
@@ -562,24 +575,20 @@ void Render(float angle)
     // Light cube.
     {
         // Model matrix.
-        XMMATRIX model = XMMatrixRotationX(XMConvertToRadians(angle * 20.0f)) *
-                         XMMatrixRotationY(XMConvertToRadians(angle * 20.0f)) *
-                         XMMatrixTranslation(0.0f, 0.0f, -3.0f) *
-                         XMMatrixScaling(0.2f, 0.2f, 0.2f);
+        XMMATRIX model = XMMatrixScaling(0.2f, 0.2f, 0.2f) *
+                        XMMatrixRotationX(XMConvertToRadians(angle)) *
+                        XMMatrixRotationY(XMConvertToRadians(angle)) *
+                        XMMatrixTranslation(lightPosition.x, lightPosition.y, lightPosition.z);
         // Camera/viewspace matrix.
         XMMATRIX view = camera.GetViewMatrix();
         // Projection matrix.
         XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
-                         
-        g_transform = XMMatrixTranspose(
-                        model * 
-                        view  * 
-                        projection
-                    );
 
         // Supply vertex shader constant data.
         ConstantBuffer cb = {};
-        cb.transform = g_transform;
+        cb.model = XMMatrixTranspose(model);
+        cb.view = XMMatrixTranspose(view);
+        cb.projection = XMMatrixTranspose(projection);
         g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
         g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
     }
@@ -613,6 +622,14 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if(wParam == 'D')
             {
                moveRight = true;
+            }
+            if(wParam == VK_UP)
+            {
+                lightPosition.z -= 0.05f;
+            }
+            if(wParam == VK_DOWN)
+            {
+                lightPosition.z += 0.05f;
             }
             break;
         }
