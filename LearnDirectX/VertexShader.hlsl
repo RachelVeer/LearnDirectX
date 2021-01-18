@@ -15,8 +15,12 @@ VSOut VSmain(float3 pos : POSITION)
 {
     VSOut output;
 
+    float4 ambientStrength = float4(0.1f, 0.1f, 0.1f, 1.0f);
+    float4 ambient = ambientStrength * lightColor;
+    
     output.pos = mul(float4(pos, 1.0f), transform);
-    output.color = lightColor * objectColor;
+    float4 result = ambient * objectColor;
+    output.color = result;
 
     return output;
 }
