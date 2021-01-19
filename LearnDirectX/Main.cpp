@@ -35,6 +35,23 @@ struct ConstantBuffer
     XMFLOAT4 lightColor;
 };
 
+struct Material
+{
+    XMFLOAT4 ambient;
+    XMFLOAT4 diffuse;
+    XMFLOAT4 specular;
+    float shininess;
+    float padding[3];
+};
+
+struct Light
+{
+    XMFLOAT4 position;
+    XMFLOAT4 ambient;
+    XMFLOAT4 diffuse;
+    XMFLOAT4 specular;
+};
+
 XMFLOAT3 cubePositions[] = {
             XMFLOAT3( 0.0f,  0.0f,  0.0f),
             XMFLOAT3( 2.0f,  5.0f, 15.0f),
@@ -73,9 +90,10 @@ Microsoft::WRL::ComPtr<ID3D11Texture2D> g_DepthStencil;
 Microsoft::WRL::ComPtr<ID3D11DepthStencilView> g_DSV;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_ConstantBuffer;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_ConstantBuffer2;
+Microsoft::WRL::ComPtr<ID3D11Buffer> g_ConstantBuffer3;
 
-float g_width = 1600.0f;
-float g_height = 900.0f;
+float g_width = 800.0f;
+float g_height = 600.0f;
 
 UINT g_verticesSize = 0;
 UINT g_indexCount = 0;
@@ -517,6 +535,55 @@ void InitDirect3D()
         g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
     }
+    // Material Constant
+    {
+        // Fill in the buffer description.
+        D3D11_BUFFER_DESC cbDesc = {};
+        cbDesc.ByteWidth = sizeof(Material);
+        cbDesc.Usage = D3D11_USAGE_DEFAULT;
+        cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        cbDesc.CPUAccessFlags = 0;
+        cbDesc.MiscFlags = 0;
+        cbDesc.StructureByteStride = 0;
+
+        // Create the buffer.
+        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_ConstantBuffer2);
+
+        // Initialize the constant.  
+        // TODO: calculate this in a way where there are seperate contants...
+        // i.e. some of these don't need to constantly change (see DX samples).
+
+        Material material = {};
+        material.ambient   = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
+        material.diffuse   = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
+        material.specular  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+        material.shininess = 16.0f;
+        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer2.Get(), 0, nullptr, &material, 0, 0);
+    }
+    // Light Constant
+    {
+        // Fill in the buffer description.
+        D3D11_BUFFER_DESC cbDesc = {};
+        cbDesc.ByteWidth = sizeof(Light);
+        cbDesc.Usage = D3D11_USAGE_DEFAULT;
+        cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        cbDesc.CPUAccessFlags = 0;
+        cbDesc.MiscFlags = 0;
+        cbDesc.StructureByteStride = 0;
+
+        // Create the buffer.
+        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_ConstantBuffer3);
+
+        // Initialize the constant.  
+        // TODO: calculate this in a way where there are seperate contants...
+        // i.e. some of these don't need to constantly change (see DX samples).
+
+        Light light = {};
+        light.ambient   = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
+        light.diffuse   = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
+        light.specular  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer3.Get(), 0, nullptr, &light, 0, 0);
+    }
 }
 
 void ProcessInput()
@@ -549,6 +616,8 @@ void Render(float angle)
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
     g_ImmediateContext->PSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
+    g_ImmediateContext->PSSetConstantBuffers(1, 1, g_ConstantBuffer2.GetAddressOf());
+    g_ImmediateContext->PSSetConstantBuffers(2, 1, g_ConstantBuffer3.GetAddressOf());
 
     // First cube.
     {
@@ -593,6 +662,12 @@ void Render(float angle)
         cb.view = XMMatrixTranspose(view);
         cb.projection = XMMatrixTranspose(projection);
         g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
+        Light light = {};
+        light.position = lightPosition;
+        light.ambient   = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+        light.diffuse   = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+        light.specular  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer3.Get(), 0, nullptr, &light, 0, 0 );
         g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
     }
 

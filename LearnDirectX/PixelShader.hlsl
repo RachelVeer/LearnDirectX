@@ -9,28 +9,53 @@ cbuffer ConstantBuffer : register(b0)
     float4 lightColor;
 }
 
+struct Material
+{
+    float4 ambient;
+    float4 diffuse;
+    float4 specular;
+    float shininess;
+    float padding[3];
+};
+
+cbuffer Material : register(b1)
+{
+    Material material;
+}
+
+struct Light
+{
+    float4 position;
+    
+    float4 ambient;
+    float4 diffuse;
+    float4 specular;
+};
+
+cbuffer Light : register(b2)
+{
+    Light light;
+}
 // Position input (even if not utilized) to match vertex shader output. 
 float4 PSmain(float4 pos : SV_POSITION, float4 color : COLOR, float4 normal : NORMAL) : SV_TARGET
 {
     // Ambient 
-    float4 ambientStrength = float4(0.1f, 0.1f, 0.1f, 1.0f);
-    float4 ambient = ambientStrength * lightColor;
+    float4 ambient = light.ambient * material.ambient;
     
     // Diffuse
     float4 norm = normalize(normal);
-    float4 lightDir = normalize(lightPos - color);
+    float4 lightDir = normalize(light.position - color);
     float4 diff = max(dot(norm, lightDir), 0.0f);
-    float4 diffuse = diff * lightColor;
+    float4 diffuse = light.diffuse * (diff * material.diffuse);
     
     // Specular
-    float4 specularStrength = float4(0.9f, 0.9f, 0.9f, 0.9f);
     float4 viewDir = normalize(viewPos - color);
     float4 reflectDir = reflect(-lightDir, norm);
     
-    float4 spec = pow(max(dot(viewDir, reflectDir), 0.0f), 16);
-    float4 specular = specularStrength * spec * lightColor;
+    float4 spec = pow(max(dot(viewDir, reflectDir), 0.0f), material.shininess);
+    float4 specular = light.specular * (spec * material.specular);
     
-    float4 result = (ambient + diffuse + specular) * objectColor;
+    float4 result = ambient + diffuse + specular;
     
     return result;
 }
