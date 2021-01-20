@@ -29,7 +29,6 @@ struct ConstantBuffer
     XMMATRIX model;
     XMMATRIX view;
     XMMATRIX projection;
-    XMFLOAT4 lightPos;
     XMFLOAT4 viewPos;
 };
 
@@ -105,7 +104,7 @@ bool moveLeft;
 bool moveRight;
 
 // Lighting.
-XMFLOAT4 lightPosition = XMFLOAT4(-1.2f, 1.0f, 2.0f, 1.0f);
+XMFLOAT4 lightPosition = XMFLOAT4(1.2f, 1.0f, 2.0f, 1.0f);
 
 // Forward declarations
 void InitWindow(HINSTANCE hInstance);
@@ -607,21 +606,61 @@ void Render(float angle)
     // First cube.
     {
         // Model matrix.
-        XMMATRIX model = XMMatrixRotationX(XMConvertToRadians(angle)) *
-                         XMMatrixRotationY(XMConvertToRadians(angle));
+        XMMATRIX model = XMMatrixIdentity();
         // Camera/viewspace matrix.
         XMMATRIX view = camera.GetViewMatrix();
         // Projection matrix.
         XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
         
         // Supply vertex shader constant data.
-        ConstantBuffer cb = {};
-        cb.model = XMMatrixTranspose(model);
-        cb.view = XMMatrixTranspose(view);
-        cb.projection = XMMatrixTranspose(projection);
-        cb.lightPos = lightPosition;
-        cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
-        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
+        {
+            ConstantBuffer cb = {};
+            cb.model = XMMatrixTranspose(model);
+            cb.view = XMMatrixTranspose(view);
+            cb.projection = XMMatrixTranspose(projection);
+            cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
+            g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+        }
+
+        // Update diffuse color in real time.
+        {
+            XMFLOAT4 lightColor = {};
+            lightColor.x = sin(timer.Peek() * 1.5f);
+            lightColor.y = sin(timer.Peek() * 0.7f);
+            lightColor.z = sin(timer.Peek() * 1.3f);
+            lightColor.w = 1.0f;
+
+            XMVECTOR lightVec = XMLoadFloat4(&lightColor);
+            XMVECTOR lightMod = XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
+            XMVECTOR lightResult = lightVec * lightMod;
+            XMFLOAT4 diffuseColor;
+            XMStoreFloat4(&diffuseColor, lightResult);
+
+            // Update ambient color to match diffuse. 
+            XMVECTOR diffuseVec = XMLoadFloat4(&diffuseColor);
+            XMVECTOR diffuseMod = XMVectorSet(0.2f, 0.2f, 0.2f, 1.0f);
+            XMVECTOR diffuseResult = diffuseVec * diffuseMod;
+            XMFLOAT4 ambientColor;
+            XMStoreFloat4(&ambientColor, diffuseResult);
+
+            Light light = {};
+            light.position = lightPosition;
+            light.ambient = ambientColor;
+            light.diffuse = diffuseColor;
+            light.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+            g_ImmediateContext->UpdateSubresource(g_ConstantBuffer3.Get(), 0, nullptr, &light, 0, 0);
+        }
+
+        // Material properties
+        {
+            Material material = {};
+            material.ambient = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
+            material.diffuse = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
+            material.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+            material.shininess = 32.0f;
+            g_ImmediateContext->UpdateSubresource(g_ConstantBuffer2.Get(), 0, nullptr, &material, 0, 0);
+        }
+
         g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
     }
 
@@ -645,34 +684,6 @@ void Render(float angle)
         cb.view = XMMatrixTranspose(view);
         cb.projection = XMMatrixTranspose(projection);
         g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
-
-        // Update diffuse color in real time.
-        XMFLOAT4 lightColor = {};
-        lightColor.x = sin(timer.Peek() * 1.5f);
-        lightColor.y = sin(timer.Peek() * 0.7f);
-        lightColor.z = sin(timer.Peek() * 1.3f);
-        lightColor.w = 1.0f;
-        
-        XMVECTOR lightVec = XMLoadFloat4(&lightColor);
-        XMVECTOR lightMod = XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
-        XMVECTOR lightResult = lightVec * lightMod;
-
-        XMStoreFloat4(&lightColor, lightResult);
-        XMFLOAT4 diffuseColor = lightColor;
-
-        // Update ambient color to match diffuse. 
-        XMVECTOR diffuseVec = XMLoadFloat4(&diffuseColor);
-        XMVECTOR diffuseMod = XMVectorSet(0.2f, 0.2f, 0.2f, 1.0f);
-        XMVECTOR diffuseResult = diffuseVec * diffuseMod;
-        XMFLOAT4 ambientColor;
-        XMStoreFloat4(&ambientColor, diffuseResult);
- 
-        Light light = {};
-        light.position = lightPosition;
-        light.ambient   = ambientColor;
-        light.diffuse   = diffuseColor;
-        light.specular  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer3.Get(), 0, nullptr, &light, 0, 0 );
         g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
     }
 

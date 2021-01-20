@@ -3,7 +3,6 @@ cbuffer ConstantBuffer : register(b0)
     matrix model;
     matrix view;
     matrix projection;
-    float4 lightPos;
     float4 viewPos;
 }
 
@@ -48,9 +47,9 @@ float4 PSmain(float4 pos : SV_POSITION, float4 color : COLOR, float4 normal : NO
     
     // Specular
     float4 viewDir = normalize(viewPos - color);
-    float4 reflectDir = reflect(-lightDir, norm);
+    float4 reflectDir = reflect(lightDir, norm);
     
-    float4 spec = pow(max(dot(viewDir, reflectDir), 0.0f), material.shininess);
+    float4 spec = pow(max(dot(viewDir, -reflectDir), 0.0f), material.shininess);
     float4 specular = light.specular * (spec * material.specular);
     
     float4 result = ambient + diffuse + specular;
