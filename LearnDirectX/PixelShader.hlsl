@@ -5,8 +5,6 @@ cbuffer ConstantBuffer : register(b0)
     matrix projection;
     float4 lightPos;
     float4 viewPos;
-    float4 objectColor;
-    float4 lightColor;
 }
 
 struct Material

@@ -31,8 +31,6 @@ struct ConstantBuffer
     XMMATRIX projection;
     XMFLOAT4 lightPos;
     XMFLOAT4 viewPos;
-    XMFLOAT4 objectColor;
-    XMFLOAT4 lightColor;
 };
 
 struct Material
@@ -636,8 +634,6 @@ void Render(float angle)
         cb.projection = XMMatrixTranspose(projection);
         cb.lightPos = lightPosition;
         cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
-        cb.objectColor = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
-        cb.lightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); 
         g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
         g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
     }
