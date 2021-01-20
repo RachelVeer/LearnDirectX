@@ -104,7 +104,7 @@ bool moveLeft;
 bool moveRight;
 
 // Lighting.
-XMFLOAT4 lightPosition = XMFLOAT4(1.2f, 1.0f, 2.0f, 1.0f);
+XMFLOAT4 lightPosition = XMFLOAT4(-1.2f, 1.0f, 2.0f, 1.0f);
 
 // Forward declarations
 void InitWindow(HINSTANCE hInstance);
@@ -656,7 +656,7 @@ void Render(float angle)
             Material material = {};
             material.ambient = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
             material.diffuse = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
-            material.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+            material.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
             material.shininess = 32.0f;
             g_ImmediateContext->UpdateSubresource(g_ConstantBuffer2.Get(), 0, nullptr, &material, 0, 0);
         }
