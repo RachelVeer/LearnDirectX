@@ -14,6 +14,7 @@
 #include "Camera.h"
 
 #include <array> // for std::size
+#include <string>
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -155,7 +156,7 @@ void InitWindow(HINSTANCE hInstance)
     wc.lpfnWndProc = WindowProc;
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
-    wc.hInstance = hInstance;       // Can use getmodulehandle to decouple main param dependency 
+    wc.hInstance = hInstance; // Can use getmodulehandle to decouple main param dependency 
     wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hbrBackground = nullptr;
@@ -165,16 +166,23 @@ void InitWindow(HINSTANCE hInstance)
 
     RegisterClassEx(&wc);
 
-    // Create window.
+    // Calculate window size based on desired client region size. 
+    RECT wr = { 0 };
+    wr.left = 0;
+    wr.right = (LONG)g_width;
+    wr.top = 0;
+    wr.bottom = (LONG)g_height;
+    AdjustWindowRectExForDpi(&wr, WS_OVERLAPPEDWINDOW, false, 0, 0);
 
+    // Create window.
     g_hWnd = CreateWindowEx(
         0,
         g_windowClass,
         L"Learn DirectX",
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT,
-        (int)g_width,
-        (int)g_height,
+        wr.right - wr.left, // Client width
+        wr.bottom - wr.top, // Client height
         nullptr,
         nullptr,
         hInstance,
