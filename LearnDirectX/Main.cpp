@@ -50,19 +50,6 @@ struct Light
     XMFLOAT4 specular;
 };
 
-XMFLOAT3 cubePositions[] = {
-            XMFLOAT3( 0.0f,  0.0f,  0.0f),
-            XMFLOAT3( 2.0f,  5.0f, 15.0f),
-            XMFLOAT3(-1.5f, -2.2f, 2.5f),
-            XMFLOAT3(-3.8f, -2.0f, 12.3f),
-            XMFLOAT3( 2.4f, -0.4f, 3.5f),
-            XMFLOAT3(-1.7f,  3.0f, 7.5f),
-            XMFLOAT3( 1.3f, -2.0f, 2.5f),
-            XMFLOAT3( 1.5f,  2.0f, 2.5f),
-            XMFLOAT3( 1.5f,  0.2f, 1.5f),
-            XMFLOAT3(-1.3f,  1.0f, 1.5f) 
-        };
-
 // Globals.
 HWND g_hWnd = nullptr;
 LPCTSTR g_windowClass = L"Learn DirectX Class";
@@ -752,11 +739,25 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_LBUTTONDOWN:
         {
             SetCapture(hWnd);
+            // Get the window client area.
+            RECT rc;
+            GetClientRect(g_hWnd, &rc);
+
+            // Convert the client area to screen coordinates.
+            POINT pt = { rc.left, rc.top };
+            POINT pt2 = { rc.right, rc.bottom };
+            ClientToScreen(g_hWnd, &pt);
+            ClientToScreen(g_hWnd, &pt2);
+            SetRect(&rc, pt.x, pt.y, pt2.x, pt2.y);
+
+            // Confine the cursor.
+            ClipCursor(&rc);
             break;
         }
         case WM_LBUTTONUP:
         {
             ReleaseCapture();
+            ClipCursor(NULL);
             break;
         }
         case WM_MOUSEMOVE:
