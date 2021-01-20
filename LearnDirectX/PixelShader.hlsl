@@ -1,4 +1,4 @@
-cbuffer ConstantBuffer : register(b0)
+cbuffer Transform : register(b0)
 {
     matrix model;
     matrix view;
@@ -53,5 +53,5 @@ float4 PSmain(float4 pos : SV_POSITION, float4 normal : NORMAL, float4 worldPos 
     
     float4 result = ambient + diffuse + specular;
     
-    return result;
+    return saturate(result);
 }

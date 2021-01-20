@@ -24,7 +24,7 @@
 using namespace DirectX;
 
 // Structures
-struct ConstantBuffer
+struct Transform
 {
     XMMATRIX model;
     XMMATRIX view;
@@ -59,22 +59,22 @@ Microsoft::WRL::ComPtr<IDXGISwapChain1> g_SwapChain;
 Microsoft::WRL::ComPtr<ID3D11RenderTargetView> g_RenderTargetView;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_VertexBuffer;
 Microsoft::WRL::ComPtr<ID3D11InputLayout> g_VertexLayout;
-Microsoft::WRL::ComPtr<ID3D11InputLayout> g_VertexLayout2;
+Microsoft::WRL::ComPtr<ID3D11InputLayout> g_LightVertexLayout;
 Microsoft::WRL::ComPtr<ID3D11VertexShader> g_VertexShader;
-Microsoft::WRL::ComPtr<ID3D11VertexShader> g_VertexShader2;
+Microsoft::WRL::ComPtr<ID3D11VertexShader> g_LightVertexShader;
 Microsoft::WRL::ComPtr<ID3D11PixelShader> g_PixelShader;
-Microsoft::WRL::ComPtr<ID3D11PixelShader> g_PixelShader2;
+Microsoft::WRL::ComPtr<ID3D11PixelShader> g_LightPixelShader;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_IndexBuffer;
 Microsoft::WRL::ComPtr<ID3D11Resource> g_Resource;
 Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> g_ShaderResourceView;
-Microsoft::WRL::ComPtr<ID3D11SamplerState> g_SamplerState;
+//Microsoft::WRL::ComPtr<ID3D11SamplerState> g_SamplerState;
 Microsoft::WRL::ComPtr<ID3D11BlendState1> g_BlendState;
 Microsoft::WRL::ComPtr<ID3D11DepthStencilState> g_DSState;
 Microsoft::WRL::ComPtr<ID3D11Texture2D> g_DepthStencil;
 Microsoft::WRL::ComPtr<ID3D11DepthStencilView> g_DSV;
-Microsoft::WRL::ComPtr<ID3D11Buffer> g_ConstantBuffer;
-Microsoft::WRL::ComPtr<ID3D11Buffer> g_ConstantBuffer2;
-Microsoft::WRL::ComPtr<ID3D11Buffer> g_ConstantBuffer3;
+Microsoft::WRL::ComPtr<ID3D11Buffer> g_TransformCB;
+Microsoft::WRL::ComPtr<ID3D11Buffer> g_MaterialCB;
+Microsoft::WRL::ComPtr<ID3D11Buffer> g_LightCB;
 
 float g_width = 800.0f;
 float g_height = 600.0f;
@@ -330,9 +330,9 @@ void InitDirect3D()
         Shader CompilePixel(L"LightPixel.hlsl","PSmain", "ps_4_0", &pixelShader);
 
         // Create Vertex Shader.
-        g_d3dDevice->CreateVertexShader(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), nullptr, &g_VertexShader2);
+        g_d3dDevice->CreateVertexShader(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), nullptr, &g_LightVertexShader);
         // Create Pixel Shader.
-        g_d3dDevice->CreatePixelShader(pixelShader->GetBufferPointer(), pixelShader->GetBufferSize(), nullptr, &g_PixelShader2);
+        g_d3dDevice->CreatePixelShader(pixelShader->GetBufferPointer(), pixelShader->GetBufferSize(), nullptr, &g_LightPixelShader);
 
          // Define Input (vertex) Layout
         D3D11_INPUT_ELEMENT_DESC layout[] =
@@ -341,7 +341,7 @@ void InitDirect3D()
             { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
 
-        g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout2);
+        g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_LightVertexLayout);
     }
 
     // Vertex stuff
@@ -467,7 +467,7 @@ void InitDirect3D()
 
     // Set the input layout.
     g_ImmediateContext->IASetInputLayout(g_VertexLayout.Get());
-    g_ImmediateContext->IASetInputLayout(g_VertexLayout2.Get());
+    g_ImmediateContext->IASetInputLayout(g_LightVertexLayout.Get());
 
     // Set topology.
     g_ImmediateContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -498,7 +498,7 @@ void InitDirect3D()
     {
         // Fill in the buffer description.
         D3D11_BUFFER_DESC cbDesc = {};
-        cbDesc.ByteWidth = sizeof(ConstantBuffer);
+        cbDesc.ByteWidth = sizeof(Transform);
         cbDesc.Usage = D3D11_USAGE_DEFAULT;
         cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         cbDesc.CPUAccessFlags = 0;
@@ -506,17 +506,17 @@ void InitDirect3D()
         cbDesc.StructureByteStride = 0;
 
         // Create the buffer.
-        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_ConstantBuffer);
+        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_TransformCB);
 
         // Initialize the constant.  
         // TODO: calculate this in a way where there are seperate contants...
         // i.e. some of these don't need to constantly change (see DX samples).
 
-        ConstantBuffer cb = {};
+        Transform cb = {};
         cb.model = XMMatrixIdentity();
         cb.view = XMMatrixIdentity();
         cb.projection = XMMatrixIdentity();
-        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+        g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
 
     }
     // Material Constant
@@ -531,7 +531,7 @@ void InitDirect3D()
         cbDesc.StructureByteStride = 0;
 
         // Create the buffer.
-        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_ConstantBuffer2);
+        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_MaterialCB);
 
         // Initialize the constant.  
         // TODO: calculate this in a way where there are seperate contants...
@@ -542,7 +542,7 @@ void InitDirect3D()
         material.diffuse   = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
         material.specular  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
         material.shininess = 16.0f;
-        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer2.Get(), 0, nullptr, &material, 0, 0);
+        g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
     }
     // Light Constant
     {
@@ -556,7 +556,7 @@ void InitDirect3D()
         cbDesc.StructureByteStride = 0;
 
         // Create the buffer.
-        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_ConstantBuffer3);
+        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_LightCB);
 
         // Initialize the constant.  
         // TODO: calculate this in a way where there are seperate contants...
@@ -566,7 +566,7 @@ void InitDirect3D()
         light.ambient   = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
         light.diffuse   = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
         light.specular  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer3.Get(), 0, nullptr, &light, 0, 0);
+        g_ImmediateContext->UpdateSubresource(g_LightCB.Get(), 0, nullptr, &light, 0, 0);
     }
 }
 
@@ -598,10 +598,10 @@ void Render(float angle)
 
     g_ImmediateContext->VSSetShader(g_VertexShader.Get(), nullptr, 0);
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
-    g_ImmediateContext->VSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
-    g_ImmediateContext->PSSetConstantBuffers(0, 1, g_ConstantBuffer.GetAddressOf());
-    g_ImmediateContext->PSSetConstantBuffers(1, 1, g_ConstantBuffer2.GetAddressOf());
-    g_ImmediateContext->PSSetConstantBuffers(2, 1, g_ConstantBuffer3.GetAddressOf());
+    g_ImmediateContext->VSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
+    g_ImmediateContext->PSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
+    g_ImmediateContext->PSSetConstantBuffers(1, 1, g_MaterialCB.GetAddressOf());
+    g_ImmediateContext->PSSetConstantBuffers(2, 1, g_LightCB.GetAddressOf());
 
     // First cube.
     {
@@ -614,12 +614,12 @@ void Render(float angle)
         
         // Supply vertex shader constant data.
         {
-            ConstantBuffer cb = {};
+            Transform cb = {};
             cb.model = XMMatrixTranspose(model);
             cb.view = XMMatrixTranspose(view);
             cb.projection = XMMatrixTranspose(projection);
             cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
-            g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+            g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
         }
 
         // Update diffuse color in real time.
@@ -648,7 +648,7 @@ void Render(float angle)
             light.ambient = ambientColor;
             light.diffuse = diffuseColor;
             light.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-            g_ImmediateContext->UpdateSubresource(g_ConstantBuffer3.Get(), 0, nullptr, &light, 0, 0);
+            g_ImmediateContext->UpdateSubresource(g_LightCB.Get(), 0, nullptr, &light, 0, 0);
         }
 
         // Material properties
@@ -658,14 +658,14 @@ void Render(float angle)
             material.diffuse = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
             material.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
             material.shininess = 32.0f;
-            g_ImmediateContext->UpdateSubresource(g_ConstantBuffer2.Get(), 0, nullptr, &material, 0, 0);
+            g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
         }
 
         g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
     }
 
-    g_ImmediateContext->VSSetShader(g_VertexShader2.Get(), nullptr, 0);
-    g_ImmediateContext->PSSetShader(g_PixelShader2.Get(), nullptr, 0);
+    g_ImmediateContext->VSSetShader(g_LightVertexShader.Get(), nullptr, 0);
+    g_ImmediateContext->PSSetShader(g_LightPixelShader.Get(), nullptr, 0);
     // Light cube.
     {
         // Model matrix.
@@ -679,11 +679,11 @@ void Render(float angle)
         XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
 
         // Supply vertex shader constant data.
-        ConstantBuffer cb = {};
+        Transform cb = {};
         cb.model = XMMatrixTranspose(model);
         cb.view = XMMatrixTranspose(view);
         cb.projection = XMMatrixTranspose(projection);
-        g_ImmediateContext->UpdateSubresource(g_ConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
+        g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0 );
         g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
     }
 
