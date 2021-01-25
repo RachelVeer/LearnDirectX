@@ -77,8 +77,8 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> g_TransformCB;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_MaterialCB;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_LightCB;
 
-float g_width = 1600.0f;
-float g_height = 900.0f;
+float g_width = 800.0f;
+float g_height = 600.0f;
 
 UINT g_verticesSize = 0;
 UINT g_indexCount = 0;
@@ -610,7 +610,7 @@ void Render(float angle)
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
     g_ImmediateContext->PSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
     g_ImmediateContext->PSSetConstantBuffers(1, 1, g_MaterialCB.GetAddressOf());
-    g_ImmediateContext->PSSetConstantBuffers(2, 2, g_LightCB.GetAddressOf());
+    g_ImmediateContext->PSSetConstantBuffers(2, 1, g_LightCB.GetAddressOf());
 
     // First cube.
     {
@@ -693,38 +693,6 @@ void Render(float angle)
         cb.view = XMMatrixTranspose(view);
         cb.projection = XMMatrixTranspose(projection);
         g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0 );
-
-        // Update diffuse color in real time.
-        {
-            XMFLOAT4 lightColor = {};
-            lightColor.x = sin(timer.Peek() * 1.5f);
-            lightColor.y = sin(timer.Peek() * 0.7f);
-            lightColor.z = sin(timer.Peek() * 1.3f);
-            lightColor.w = 1.0f;
-
-            XMVECTOR lightVec = XMLoadFloat4(&lightColor);
-            XMVECTOR lightMod = XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
-            XMVECTOR lightResult = lightVec * lightMod;
-            XMFLOAT4 diffuseColor;
-            XMStoreFloat4(&diffuseColor, lightResult);
-
-            // Update ambient color to match diffuse. 
-            XMVECTOR diffuseVec = XMLoadFloat4(&diffuseColor);
-            XMVECTOR diffuseMod = XMVectorSet(0.2f, 0.2f, 0.2f, 1.0f);
-            XMVECTOR diffuseResult = diffuseVec * diffuseMod;
-            XMFLOAT4 ambientColor;
-            XMStoreFloat4(&ambientColor, diffuseResult);
-
-            Light light = {};
-            light.position = lightPosition;
-            light.ambient = ambientColor;
-            light.diffuse = diffuseColor;
-            light.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-            g_ImmediateContext->UpdateSubresource(g_LightCB.Get(), 0, nullptr, &light, 0, 0);
-        }
-
-
-
         g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
     }
 
