@@ -103,6 +103,7 @@ bool moveForward;
 bool moveBackward;
 bool moveLeft;
 bool moveRight;
+bool clip = false;
 
 // Lighting.
 XMFLOAT4 lightPosition = XMFLOAT4(-1.2f, 1.0f, 2.0f, 1.0f);
@@ -618,7 +619,7 @@ void Render(float angle)
         // Camera/viewspace matrix.
         XMMATRIX view = camera.GetViewMatrix();
         // Projection matrix.
-        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
+        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), g_width / g_height, 0.1f, 100.f);
         
         // Supply vertex shader constant data.
         {
@@ -684,7 +685,7 @@ void Render(float angle)
         // Camera/viewspace matrix.
         XMMATRIX view = camera.GetViewMatrix();
         // Projection matrix.
-        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
+        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), g_width / g_height, 0.1f, 100.f);
 
         // Supply vertex shader constant data.
         Transform cb = {};
@@ -758,29 +759,38 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_LBUTTONDOWN:
         {
             SetCapture(hWnd);
-            // Get the window client area.
-            RECT rc;
-            GetClientRect(g_hWnd, &rc);
-
-            // Convert the client area to screen coordinates.
-            POINT pt = { rc.left, rc.top };
-            POINT pt2 = { rc.right, rc.bottom };
-            ClientToScreen(g_hWnd, &pt);
-            ClientToScreen(g_hWnd, &pt2);
-            SetRect(&rc, pt.x, pt.y, pt2.x, pt2.y);
-
-            // Confine the cursor.
-            ClipCursor(&rc);
+            if (clip)
+            {
+                ClipCursor(NULL);
+            }
             break;
         }
         case WM_LBUTTONUP:
         {
             ReleaseCapture();
-            ClipCursor(NULL);
+            clip = false;
             break;
         }
         case WM_MOUSEMOVE:
         {
+            if (!clip)
+            {
+                // Get the window client area.
+                RECT rc;
+                GetClientRect(g_hWnd, &rc);
+
+                // Convert the client area to screen coordinates.
+                POINT pt = { rc.left, rc.top };
+                POINT pt2 = { rc.right, rc.bottom };
+                ClientToScreen(g_hWnd, &pt);
+                ClientToScreen(g_hWnd, &pt2);
+                SetRect(&rc, pt.x, pt.y, pt2.x, pt2.y);
+
+                // Confine the cursor.
+                ClipCursor(&rc);
+                clip = true;
+            }
+
             float xpos = (float)GET_X_LPARAM(lParam); 
             float ypos = (float)GET_Y_LPARAM(lParam);
             
