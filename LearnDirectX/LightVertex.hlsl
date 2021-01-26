@@ -11,7 +11,7 @@ struct VSOut
     float4 pos : SV_POSITION;
 };
 
-VSOut VSmain(float3 pos : POSITION, float3 normal : NORMAL)
+VSOut VSmain(float3 pos : POSITION, float3 normal : NORMAL, float2 tex : TEXCOORD)
 {
     VSOut output;
     float4x4 vp = mul(view, projection);

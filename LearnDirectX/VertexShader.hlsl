@@ -11,9 +11,10 @@ struct VSOut
     float4 pos : SV_POSITION;
     float4 normal : NORMAL;
     float4 worldPos : Position;
+    float2 tex : TexCoord;
 };
 
-VSOut VSmain(float3 pos : POSITION, float3 normal : NORMAL)
+VSOut VSmain(float3 pos : POSITION, float3 normal : NORMAL, float2 tex : TEXCOORD)
 {
     VSOut output;
     
@@ -24,5 +25,7 @@ VSOut VSmain(float3 pos : POSITION, float3 normal : NORMAL)
     output.pos = output.worldPos;
     output.pos = mul(output.pos, view);
     output.pos = mul(output.pos, projection);
+    
+    output.tex = tex;
     return output;
 }

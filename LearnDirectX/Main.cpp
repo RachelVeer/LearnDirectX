@@ -35,8 +35,7 @@ struct Transform
 
 struct Material
 {
-    XMFLOAT4 ambient;
-    XMFLOAT4 diffuse;
+    // Sampler state here... how?
     XMFLOAT4 specular;
     float shininess;
     float padding[3];
@@ -68,7 +67,7 @@ Microsoft::WRL::ComPtr<ID3D11PixelShader> g_LightPixelShader;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_IndexBuffer;
 Microsoft::WRL::ComPtr<ID3D11Resource> g_Resource;
 Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> g_ShaderResourceView;
-//Microsoft::WRL::ComPtr<ID3D11SamplerState> g_SamplerState;
+Microsoft::WRL::ComPtr<ID3D11SamplerState> g_SamplerState;
 Microsoft::WRL::ComPtr<ID3D11BlendState1> g_BlendState;
 Microsoft::WRL::ComPtr<ID3D11DepthStencilState> g_DSState;
 Microsoft::WRL::ComPtr<ID3D11Texture2D> g_DepthStencil;
@@ -77,8 +76,8 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> g_TransformCB;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_MaterialCB;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_LightCB;
 
-float g_width = 800.0f;
-float g_height = 600.0f;
+float g_width = 1600.0f;
+float g_height = 900.0f;
 
 UINT g_verticesSize = 0;
 UINT g_indexCount = 0;
@@ -329,6 +328,7 @@ void InitDirect3D()
         {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
 
         g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout);
@@ -348,6 +348,7 @@ void InitDirect3D()
         {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
 
         g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_LightVertexLayout);
@@ -358,45 +359,46 @@ void InitDirect3D()
     {
         XMFLOAT3 pos;
         XMFLOAT3 normal;
+        XMFLOAT2 tex;
     };
 
     Vertex vertices[] = {
-        // Position                       // Normal vectors (perpendicular)
+        // Position                       // Normals                  // Texture coordinates
         // Top
-        { XMFLOAT3( -0.5f, 0.5f, -0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(  0.5f, 0.5f, -0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(  0.5f, 0.5f,  0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3( -0.5f, 0.5f,  0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+        { XMFLOAT3( -0.5f, 0.5f, -0.5f),  XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
+        { XMFLOAT3(  0.5f, 0.5f, -0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
+        { XMFLOAT3(  0.5f, 0.5f,  0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
+        { XMFLOAT3( -0.5f, 0.5f,  0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
 
         // Bottom
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f) },
-        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f) },
-        { XMFLOAT3(  0.5f, -0.5f,  0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f) },
-        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f) },
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
+        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
+        { XMFLOAT3(  0.5f, -0.5f,  0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
+        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
 
         // Left
-        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3( -0.5f,  0.5f,  0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
+        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
+        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
+        { XMFLOAT3( -0.5f,  0.5f,  0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
 
         // Right
-        { XMFLOAT3( 0.5f, -0.5f,  0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f)},
-        { XMFLOAT3( 0.5f, -0.5f, -0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f)},
-        { XMFLOAT3( 0.5f,  0.5f, -0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f)},
-        { XMFLOAT3( 0.5f,  0.5f,  0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f)},
+        { XMFLOAT3( 0.5f, -0.5f,  0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f)},
+        { XMFLOAT3( 0.5f, -0.5f, -0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f)},
+        { XMFLOAT3( 0.5f,  0.5f, -0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f)},
+        { XMFLOAT3( 0.5f,  0.5f,  0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f)},
 
         // Back
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f) },
-        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f) },
-        { XMFLOAT3(  0.5f,  0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f) },
-        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f) },
+        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f) },
+        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 1.0f) },
+        { XMFLOAT3(  0.5f,  0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 0.0f) },
+        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 0.0f) },
 
         // Front
-        { XMFLOAT3( -0.5f, -0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-        { XMFLOAT3(  0.5f, -0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-        { XMFLOAT3(  0.5f,  0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-        { XMFLOAT3( -0.5f,  0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3( -0.5f, -0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 1.0f) },
+        { XMFLOAT3(  0.5f, -0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 1.0f) },
+        { XMFLOAT3(  0.5f,  0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) },
+        { XMFLOAT3( -0.5f,  0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 0.0f) },
 
     };
 
@@ -481,6 +483,28 @@ void InitDirect3D()
     // Set topology.
     g_ImmediateContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+    // Texture stuffs
+    {
+        // Lightweight DDS file loader from the DirectX Tool Kit.
+        // Source: https://github.com/Microsoft/DirectXTK/wiki/DDSTextureLoader
+        CreateDDSTextureFromFile(g_d3dDevice.Get(), L"Assets/Textures/container2.dds", &g_Resource, &g_ShaderResourceView);
+
+        // Create sample state.
+        D3D11_SAMPLER_DESC samplerDesc = {};
+        SecureZeroMemory(&samplerDesc, sizeof(samplerDesc));
+        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+        samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+        samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        samplerDesc.MinLOD = 0;
+        samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+        g_d3dDevice->CreateSamplerState(&samplerDesc, &g_SamplerState);
+
+        g_ImmediateContext->PSSetShaderResources(0, 1, g_ShaderResourceView.GetAddressOf());
+        g_ImmediateContext->PSSetSamplers(0, 1, g_SamplerState.GetAddressOf());
+    }
+
     // Blending
     {
         D3D11_BLEND_DESC1 blendState = {};
@@ -547,8 +571,6 @@ void InitDirect3D()
         // i.e. some of these don't need to constantly change (see DX samples).
 
         Material material = {};
-        material.ambient   = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
-        material.diffuse   = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
         material.specular  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
         material.shininess = 16.0f;
         g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
@@ -631,31 +653,12 @@ void Render(float angle)
             g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
         }
 
-        // Update diffuse color in real time.
+        // Set light color.
         {
-            XMFLOAT4 lightColor = {};
-            lightColor.x = sin(timer.Peek() * 1.5f);
-            lightColor.y = sin(timer.Peek() * 0.7f);
-            lightColor.z = sin(timer.Peek() * 1.3f);
-            lightColor.w = 1.0f;
-
-            XMVECTOR lightVec = XMLoadFloat4(&lightColor);
-            XMVECTOR lightMod = XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
-            XMVECTOR lightResult = lightVec * lightMod;
-            XMFLOAT4 diffuseColor;
-            XMStoreFloat4(&diffuseColor, lightResult);
-
-            // Update ambient color to match diffuse. 
-            XMVECTOR diffuseVec = XMLoadFloat4(&diffuseColor);
-            XMVECTOR diffuseMod = XMVectorSet(0.2f, 0.2f, 0.2f, 1.0f);
-            XMVECTOR diffuseResult = diffuseVec * diffuseMod;
-            XMFLOAT4 ambientColor;
-            XMStoreFloat4(&ambientColor, diffuseResult);
-
             Light light = {};
             light.position = lightPosition;
-            light.ambient = ambientColor;
-            light.diffuse = diffuseColor;
+            light.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+            light.diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
             light.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
             g_ImmediateContext->UpdateSubresource(g_LightCB.Get(), 0, nullptr, &light, 0, 0);
         }
@@ -663,10 +666,8 @@ void Render(float angle)
         // Material properties
         {
             Material material = {};
-            material.ambient = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
-            material.diffuse = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
             material.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-            material.shininess = 32.0f;
+            material.shininess = 64.0f;
             g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
         }
 
