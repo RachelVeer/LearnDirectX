@@ -35,7 +35,7 @@ struct Transform
 
 struct Material
 {
-    // Sampler state here... how?
+    XMFLOAT4 diffuse;
     XMFLOAT4 specular;
     float shininess;
     float padding[3];
@@ -501,7 +501,12 @@ void InitDirect3D()
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
         g_d3dDevice->CreateSamplerState(&samplerDesc, &g_SamplerState);
 
+        // Set shader resource for first texture.
         g_ImmediateContext->PSSetShaderResources(0, 1, g_ShaderResourceView.GetAddressOf());
+        // Create second texture & set shader resource for it.  
+        CreateDDSTextureFromFile(g_d3dDevice.Get(), L"Assets/Textures/container2_specular.dds", &g_Resource, &g_ShaderResourceView);
+        g_ImmediateContext->PSSetShaderResources(1, 1, g_ShaderResourceView.GetAddressOf());
+        // Bind sampler state.
         g_ImmediateContext->PSSetSamplers(0, 1, g_SamplerState.GetAddressOf());
     }
 
