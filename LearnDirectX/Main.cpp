@@ -35,8 +35,6 @@ struct Transform
 
 struct Material
 {
-    XMFLOAT4 diffuse;
-    XMFLOAT4 specular;
     float shininess;
     float padding[3];
 };
@@ -576,8 +574,7 @@ void InitDirect3D()
         // i.e. some of these don't need to constantly change (see DX samples).
 
         Material material = {};
-        material.specular  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-        material.shininess = 16.0f;
+        material.shininess = 64.0f;
         g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
     }
     // Light Constant
@@ -671,7 +668,6 @@ void Render(float angle)
         // Material properties
         {
             Material material = {};
-            material.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
             material.shininess = 64.0f;
             g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
         }

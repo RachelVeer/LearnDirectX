@@ -11,8 +11,6 @@ cbuffer Transform : register(b0)
 
 struct Material
 {
-    float4 diffuse;
-    float4 specular;
     float shininess;
     float padding[3];
 };
@@ -37,24 +35,24 @@ cbuffer Light : register(b2)
 // Position input (even if not utilized) to match vertex shader output. 
 float4 PSmain(float4 pos : SV_POSITION, float4 normal : NORMAL, float4 worldPos : Position, float2 tex : TexCoord) : SV_TARGET
 {   
-    //material.diffuse = txDiffuse[0].Sample(samLinear, tex);
-    //material.specular = txDiffuse[1].Sample(samLinear, tex);
+    float4 mDiffuse = txDiffuse[0].Sample(samLinear, tex);
+    float4 mSpecular = txDiffuse[1].Sample(samLinear, tex);
     
     // Ambient 
-    float4 ambient = light.ambient * txDiffuse[0].Sample(samLinear, tex);
+    float4 ambient = light.ambient * mDiffuse;
     
     // Diffuse
     float4 norm = normalize(normal);
     float4 lightDir = normalize(light.position - worldPos);
     float4 diff = max(dot(norm, lightDir), 0.0f);
-    float4 diffuse = light.diffuse * diff * txDiffuse[0].Sample(samLinear, tex);
+    float4 diffuse = light.diffuse * diff * mDiffuse;
     
     // Specular
     float4 viewDir = normalize(viewPos - worldPos);
     float4 reflectDir = reflect(-lightDir, norm);
     
     float4 spec = pow(max(dot(viewDir, reflectDir), 0.0f), material.shininess);
-    float4 specular = light.specular * spec * txDiffuse[1].Sample(samLinear, tex);
+    float4 specular = light.specular * spec * mSpecular;
     
     float4 result = ambient + diffuse + specular;
     
