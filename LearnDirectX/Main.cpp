@@ -41,23 +41,29 @@ struct Material
 
 struct Light
 {
-    XMFLOAT4 direction;
+    XMFLOAT4 position;
+
     XMFLOAT4 ambient;
     XMFLOAT4 diffuse;
     XMFLOAT4 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
+    float padding;
 };
 
 XMFLOAT3 cubePositions[] = {
             XMFLOAT3( 0.0f,  0.0f, 0.0f),
-            XMFLOAT3( 2.0f,  5.0f, 15.0f),
-            XMFLOAT3(-1.5f, -2.2f, 2.5f),
-            XMFLOAT3(-3.8f, -2.0f, 12.3f),
-            XMFLOAT3( 2.4f, -0.4f, 3.5f),
-            XMFLOAT3(-1.7f,  3.0f, 7.5f),
-            XMFLOAT3( 1.3f, -2.0f, 2.5f),
-            XMFLOAT3( 1.5f,  2.0f, 2.5f),
-            XMFLOAT3( 1.5f,  0.2f, 1.5f),
-            XMFLOAT3(-1.3f,  1.0f, 1.5f)
+            XMFLOAT3( 2.0f,  5.0f, -15.0f),
+            XMFLOAT3(-1.5f, -2.2f, -2.5f),
+            XMFLOAT3(-3.8f, -2.0f, -12.3f),
+            XMFLOAT3( 2.4f, -0.4f, -3.5f),
+            XMFLOAT3(-1.7f,  3.0f, -7.5f),
+            XMFLOAT3( 1.3f, -2.0f, -2.5f),
+            XMFLOAT3( 1.5f,  2.0f, -2.5f),
+            XMFLOAT3( 1.5f,  0.2f, -1.5f),
+            XMFLOAT3(-1.3f,  1.0f, -1.5f)
 };
 
 // Globals.
@@ -658,7 +664,7 @@ void Render(float angle)
             float angle = 20.0f * i;
             model = XMMatrixRotationX(XMConvertToRadians(angle)) *
                     XMMatrixRotationY(XMConvertToRadians(angle)) *
-                    XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, -cubePositions[i].z);
+                    XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z);
             // Camera/viewspace matrix.
             XMMATRIX view = camera.GetViewMatrix();
             // Projection matrix.
@@ -677,10 +683,13 @@ void Render(float angle)
             // Set light color.
             {
                 Light light = {};
-                light.direction = XMFLOAT4(-0.2f, -1.0f, -0.3f, 0.0f);
+                light.position = lightPosition;
                 light.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
                 light.diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
                 light.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+                light.constant = 1.0f;
+                light.linear = 0.09f;
+                light.quadratic = 0.032f;
                 g_ImmediateContext->UpdateSubresource(g_LightCB.Get(), 0, nullptr, &light, 0, 0);
             }
 
