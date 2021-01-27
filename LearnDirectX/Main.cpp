@@ -42,6 +42,7 @@ struct Material
 struct Light
 {
     XMFLOAT4 position;
+    XMFLOAT4 direction;
 
     XMFLOAT4 ambient;
     XMFLOAT4 diffuse;
@@ -50,7 +51,9 @@ struct Light
     float constant;
     float linear;
     float quadratic;
-    float padding;
+    float cutOff;
+    float outerCutOff;
+    float padding[3];
 };
 
 XMFLOAT3 cubePositions[] = {
@@ -683,13 +686,16 @@ void Render(float angle)
             // Set light color.
             {
                 Light light = {};
-                light.position = lightPosition;
+                light.position = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
+                light.direction = XMFLOAT4(camera.Front.x, camera.Front.y, camera.Front.z, 0.0f);
                 light.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
                 light.diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
                 light.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
                 light.constant = 1.0f;
                 light.linear = 0.09f;
                 light.quadratic = 0.032f;
+                light.cutOff = cos(XMConvertToRadians(12.5f));
+                light.outerCutOff = cos(XMConvertToRadians(17.5f));
                 g_ImmediateContext->UpdateSubresource(g_LightCB.Get(), 0, nullptr, &light, 0, 0);
             }
 
