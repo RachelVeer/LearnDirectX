@@ -22,7 +22,7 @@ cbuffer Material : register(b1)
 
 struct Light
 {
-    float4 position;
+    float4 direction;
     float4 ambient;
     float4 diffuse;
     float4 specular;
@@ -43,7 +43,7 @@ float4 PSmain(float4 pos : SV_POSITION, float4 normal : NORMAL, float4 worldPos 
     
     // Diffuse
     float4 norm = normalize(normal);
-    float4 lightDir = normalize(light.position - worldPos);
+    float4 lightDir = normalize(-light.direction);
     float4 diff = max(dot(norm, lightDir), 0.0f);
     float4 diffuse = light.diffuse * diff * mDiffuse;
     

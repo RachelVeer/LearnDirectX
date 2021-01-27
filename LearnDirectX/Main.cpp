@@ -41,10 +41,23 @@ struct Material
 
 struct Light
 {
-    XMFLOAT4 position;
+    XMFLOAT4 direction;
     XMFLOAT4 ambient;
     XMFLOAT4 diffuse;
     XMFLOAT4 specular;
+};
+
+XMFLOAT3 cubePositions[] = {
+            XMFLOAT3( 0.0f,  0.0f, 0.0f),
+            XMFLOAT3( 2.0f,  5.0f, 15.0f),
+            XMFLOAT3(-1.5f, -2.2f, 2.5f),
+            XMFLOAT3(-3.8f, -2.0f, 12.3f),
+            XMFLOAT3( 2.4f, -0.4f, 3.5f),
+            XMFLOAT3(-1.7f,  3.0f, 7.5f),
+            XMFLOAT3( 1.3f, -2.0f, 2.5f),
+            XMFLOAT3( 1.5f,  2.0f, 2.5f),
+            XMFLOAT3( 1.5f,  0.2f, 1.5f),
+            XMFLOAT3(-1.3f,  1.0f, 1.5f)
 };
 
 // Globals.
@@ -638,41 +651,48 @@ void Render(float angle)
 
     // First cube.
     {
-        // Model matrix.
-        XMMATRIX model = XMMatrixIdentity();
-        // Camera/viewspace matrix.
-        XMMATRIX view = camera.GetViewMatrix();
-        // Projection matrix.
-        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), g_width / g_height, 0.1f, 100.f);
-        
-        // Supply vertex shader constant data.
+        for (unsigned int i = 0; i < 10; i++)
         {
-            Transform cb = {};
-            cb.model = XMMatrixTranspose(model);
-            cb.view = XMMatrixTranspose(view);
-            cb.projection = XMMatrixTranspose(projection);
-            cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
-            g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
-        }
+            // Model matrix.
+            XMMATRIX model = XMMatrixIdentity();
+            float angle = 20.0f * i;
+            model = XMMatrixRotationX(XMConvertToRadians(angle)) *
+                    XMMatrixRotationY(XMConvertToRadians(angle)) *
+                    XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, -cubePositions[i].z);
+            // Camera/viewspace matrix.
+            XMMATRIX view = camera.GetViewMatrix();
+            // Projection matrix.
+            XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
 
-        // Set light color.
-        {
-            Light light = {};
-            light.position = lightPosition;
-            light.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
-            light.diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-            light.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-            g_ImmediateContext->UpdateSubresource(g_LightCB.Get(), 0, nullptr, &light, 0, 0);
-        }
+            // Supply vertex shader constant data.
+            {
+                Transform cb = {};
+                cb.model = XMMatrixTranspose(model);
+                cb.view = XMMatrixTranspose(view);
+                cb.projection = XMMatrixTranspose(projection);
+                cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
+                g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
+            }
 
-        // Material properties
-        {
-            Material material = {};
-            material.shininess = 64.0f;
-            g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
-        }
+            // Set light color.
+            {
+                Light light = {};
+                light.direction = XMFLOAT4(-0.2f, -1.0f, -0.3f, 0.0f);
+                light.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+                light.diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+                light.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+                g_ImmediateContext->UpdateSubresource(g_LightCB.Get(), 0, nullptr, &light, 0, 0);
+            }
 
-        g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
+            // Material properties
+            {
+                Material material = {};
+                material.shininess = 64.0f;
+                g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
+            }
+
+            g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
+        }
     }
 
     g_ImmediateContext->VSSetShader(g_LightVertexShader.Get(), nullptr, 0);
@@ -687,7 +707,7 @@ void Render(float angle)
         // Camera/viewspace matrix.
         XMMATRIX view = camera.GetViewMatrix();
         // Projection matrix.
-        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.0f), g_width / g_height, 0.1f, 100.f);
+        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
 
         // Supply vertex shader constant data.
         Transform cb = {};
