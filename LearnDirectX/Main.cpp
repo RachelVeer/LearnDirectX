@@ -39,21 +39,27 @@ struct Material
     float padding[3];
 };
 
-struct Light
+struct DirLight
 {
-    XMFLOAT4 position;
     XMFLOAT4 direction;
 
     XMFLOAT4 ambient;
     XMFLOAT4 diffuse;
     XMFLOAT4 specular;
+};
+
+struct PointLight
+{
+    XMFLOAT4 position;
 
     float constant;
-    float linear;
+    float linearL;
     float quadratic;
-    float cutOff;
-    float outerCutOff;
-    float padding[3];
+    float padding;
+
+    XMFLOAT4 ambient;
+    XMFLOAT4 diffuse;
+    XMFLOAT4 specular;
 };
 
 XMFLOAT3 cubePositions[] = {
@@ -67,6 +73,14 @@ XMFLOAT3 cubePositions[] = {
             XMFLOAT3( 1.5f,  2.0f, -2.5f),
             XMFLOAT3( 1.5f,  0.2f, -1.5f),
             XMFLOAT3(-1.3f,  1.0f, -1.5f)
+};
+
+// Positions of the point lights.
+XMFLOAT4 pointLightPositions[] = {
+    XMFLOAT4(0.7f,  0.2f,  2.0f, 1.0f),
+    XMFLOAT4(2.3f, -3.3f, -4.0f, 1.0f),
+    XMFLOAT4(-4.0f,  2.0f, -12.0f, 1.0f),
+    XMFLOAT4(0.0f,  0.0f, -3.0f, 1.0f)
 };
 
 // Globals.
@@ -94,7 +108,8 @@ Microsoft::WRL::ComPtr<ID3D11Texture2D> g_DepthStencil;
 Microsoft::WRL::ComPtr<ID3D11DepthStencilView> g_DSV;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_TransformCB;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_MaterialCB;
-Microsoft::WRL::ComPtr<ID3D11Buffer> g_LightCB;
+Microsoft::WRL::ComPtr<ID3D11Buffer> g_DirLightCB;
+Microsoft::WRL::ComPtr<ID3D11Buffer> g_PointLightCB;
 
 float g_width = 1600.0f;
 float g_height = 900.0f;
@@ -599,11 +614,11 @@ void InitDirect3D()
         material.shininess = 64.0f;
         g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
     }
-    // Light Constant
+    // Directional Light Constant
     {
         // Fill in the buffer description.
         D3D11_BUFFER_DESC cbDesc = {};
-        cbDesc.ByteWidth = sizeof(Light);
+        cbDesc.ByteWidth = sizeof(DirLight);
         cbDesc.Usage = D3D11_USAGE_DEFAULT;
         cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         cbDesc.CPUAccessFlags = 0;
@@ -611,17 +626,33 @@ void InitDirect3D()
         cbDesc.StructureByteStride = 0;
 
         // Create the buffer.
-        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_LightCB);
+        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_DirLightCB);
+
+        // Initialize the constant.  
+        DirLight dirLight = {};
+        g_ImmediateContext->UpdateSubresource(g_DirLightCB.Get(), 0, nullptr, &dirLight, 0, 0);
+    }
+
+    // Point Light Constant
+    {
+        // Fill in the buffer description.
+        D3D11_BUFFER_DESC cbDesc = {};
+        cbDesc.ByteWidth = sizeof(PointLight);
+        cbDesc.Usage = D3D11_USAGE_DEFAULT;
+        cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        cbDesc.CPUAccessFlags = 0;
+        cbDesc.MiscFlags = 0;
+        cbDesc.StructureByteStride = 0;
+
+        // Create the buffer.
+        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_PointLightCB);
 
         // Initialize the constant.  
         // TODO: calculate this in a way where there are seperate contants...
         // i.e. some of these don't need to constantly change (see DX samples).
 
-        Light light = {};
-        light.ambient   = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
-        light.diffuse   = XMFLOAT4(1.0f, 0.5f, 0.31f, 1.0f);
-        light.specular  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-        g_ImmediateContext->UpdateSubresource(g_LightCB.Get(), 0, nullptr, &light, 0, 0);
+        PointLight pointLight = {};
+        g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLight, 0, 0);
     }
 }
 
@@ -656,7 +687,8 @@ void Render(float angle)
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
     g_ImmediateContext->PSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
     g_ImmediateContext->PSSetConstantBuffers(1, 1, g_MaterialCB.GetAddressOf());
-    g_ImmediateContext->PSSetConstantBuffers(2, 1, g_LightCB.GetAddressOf());
+    g_ImmediateContext->PSSetConstantBuffers(2, 1, g_DirLightCB.GetAddressOf());
+    g_ImmediateContext->PSSetConstantBuffers(3, 1, g_PointLightCB.GetAddressOf());
 
     // First cube.
     {
@@ -683,28 +715,30 @@ void Render(float angle)
                 g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
             }
 
-            // Set light color.
-            {
-                Light light = {};
-                light.position = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
-                light.direction = XMFLOAT4(camera.Front.x, camera.Front.y, camera.Front.z, 0.0f);
-                light.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
-                light.diffuse = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-                light.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-                light.constant = 1.0f;
-                light.linear = 0.09f;
-                light.quadratic = 0.032f;
-                light.cutOff = cos(XMConvertToRadians(12.5f));
-                light.outerCutOff = cos(XMConvertToRadians(17.5f));
-                g_ImmediateContext->UpdateSubresource(g_LightCB.Get(), 0, nullptr, &light, 0, 0);
-            }
-
             // Material properties
             {
                 Material material = {};
                 material.shininess = 64.0f;
                 g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
             }
+
+            // Directional light.
+            DirLight dirLight = {};
+            dirLight.direction = XMFLOAT4(-0.2f, -1.0f, -0.3, 1.0f);
+            dirLight.ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
+            dirLight.diffuse = XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f);
+            dirLight.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+            g_ImmediateContext->UpdateSubresource(g_DirLightCB.Get(), 0, nullptr, &dirLight, 0, 0);
+            // Point light 1
+            PointLight pointLights = {};
+            pointLights.position = pointLightPositions[1];
+            pointLights.ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
+            pointLights.diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+            pointLights.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+            pointLights.constant = 1.0f;
+            pointLights.linearL = 0.09f;
+            pointLights.quadratic = 0.03f;
+            g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLights, 0, 0);
 
             g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
         }
