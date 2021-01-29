@@ -117,7 +117,7 @@ float g_height = 900.0f;
 UINT g_verticesSize = 0;
 UINT g_indexCount = 0;
 
-const float g_color[] = { 0.16f, 0.16f, 0.16f, 1.0f };
+const float g_color[] = { 0.12f, 0.12f, 0.16f, 1.0f };
 XMMATRIX g_transform;
 
 Timer timer; // For simple maths
@@ -723,14 +723,14 @@ void Render(float angle)
             DirLight dirLight = {};
             dirLight.direction = XMFLOAT4(-0.2f, -1.0f, -0.3f, 1.0f);
             dirLight.ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-            dirLight.diffuse = XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f);
+            dirLight.diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
             dirLight.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
             g_ImmediateContext->UpdateSubresource(g_DirLightCB.Get(), 0, nullptr, &dirLight, 0, 0);
             // Point light 1
             PointLight pointLights[4] = {};
             pointLights[0].position = pointLightPositions[0];
             pointLights[0].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-            pointLights[0].diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+            pointLights[0].diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
             pointLights[0].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
             pointLights[0].constant = 1.0f;
             pointLights[0].linearL = 0.09f;
@@ -739,7 +739,7 @@ void Render(float angle)
             // Point light 2
             pointLights[1].position = pointLightPositions[1];
             pointLights[1].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-            pointLights[1].diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+            pointLights[1].diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
             pointLights[1].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
             pointLights[1].constant = 1.0f;
             pointLights[1].linearL = 0.09f;
@@ -748,7 +748,7 @@ void Render(float angle)
             // Point light 3
             pointLights[2].position = pointLightPositions[2];
             pointLights[2].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-            pointLights[2].diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+            pointLights[2].diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
             pointLights[2].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
             pointLights[2].constant = 1.0f;
             pointLights[2].linearL = 0.09f;
@@ -757,7 +757,7 @@ void Render(float angle)
             // Point light 3
             pointLights[3].position = pointLightPositions[3];
             pointLights[3].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-            pointLights[3].diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+            pointLights[3].diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
             pointLights[3].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
             pointLights[3].constant = 1.0f;
             pointLights[3].linearL = 0.09f;
