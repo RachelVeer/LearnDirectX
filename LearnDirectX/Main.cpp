@@ -637,7 +637,7 @@ void InitDirect3D()
     {
         // Fill in the buffer description.
         D3D11_BUFFER_DESC cbDesc = {};
-        cbDesc.ByteWidth = sizeof(PointLight);
+        cbDesc.ByteWidth = sizeof(PointLight[4]);
         cbDesc.Usage = D3D11_USAGE_DEFAULT;
         cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         cbDesc.CPUAccessFlags = 0;
@@ -647,10 +647,7 @@ void InitDirect3D()
         // Create the buffer.
         g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_PointLightCB);
 
-        // Initialize the constant.  
-        // TODO: calculate this in a way where there are seperate contants...
-        // i.e. some of these don't need to constantly change (see DX samples).
-
+        // Zero initialize.
         PointLight pointLight = {};
         g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLight, 0, 0);
     }
@@ -698,8 +695,8 @@ void Render(float angle)
             XMMATRIX model = XMMatrixIdentity();
             float angle = 20.0f * i;
             model = XMMatrixRotationX(XMConvertToRadians(angle)) *
-                    XMMatrixRotationY(XMConvertToRadians(angle)) *
-                    XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z);
+                XMMatrixRotationY(XMConvertToRadians(angle)) *
+                XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z);
             // Camera/viewspace matrix.
             XMMATRIX view = camera.GetViewMatrix();
             // Projection matrix.
@@ -724,21 +721,49 @@ void Render(float angle)
 
             // Directional light.
             DirLight dirLight = {};
-            dirLight.direction = XMFLOAT4(-0.2f, -1.0f, -0.3, 1.0f);
+            dirLight.direction = XMFLOAT4(-0.2f, -1.0f, -0.3f, 1.0f);
             dirLight.ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
             dirLight.diffuse = XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f);
             dirLight.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
             g_ImmediateContext->UpdateSubresource(g_DirLightCB.Get(), 0, nullptr, &dirLight, 0, 0);
             // Point light 1
-            PointLight pointLights = {};
-            pointLights.position = pointLightPositions[1];
-            pointLights.ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-            pointLights.diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
-            pointLights.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-            pointLights.constant = 1.0f;
-            pointLights.linearL = 0.09f;
-            pointLights.quadratic = 0.03f;
+            PointLight pointLights[4] = {};
+            pointLights[0].position = pointLightPositions[0];
+            pointLights[0].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
+            pointLights[0].diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+            pointLights[0].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+            pointLights[0].constant = 1.0f;
+            pointLights[0].linearL = 0.09f;
+            pointLights[0].quadratic = 0.03f;
+           // g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLights, 0, 0);
+            // Point light 2
+            pointLights[1].position = pointLightPositions[1];
+            pointLights[1].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
+            pointLights[1].diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+            pointLights[1].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+            pointLights[1].constant = 1.0f;
+            pointLights[1].linearL = 0.09f;
+            pointLights[1].quadratic = 0.03f;
+            //g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLights, 0, 0);
+            // Point light 3
+            pointLights[2].position = pointLightPositions[2];
+            pointLights[2].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
+            pointLights[2].diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+            pointLights[2].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+            pointLights[2].constant = 1.0f;
+            pointLights[2].linearL = 0.09f;
+            pointLights[2].quadratic = 0.03f;
+            //g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLights, 0, 0);
+            // Point light 3
+            pointLights[3].position = pointLightPositions[3];
+            pointLights[3].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
+            pointLights[3].diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+            pointLights[3].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+            pointLights[3].constant = 1.0f;
+            pointLights[3].linearL = 0.09f;
+            pointLights[3].quadratic = 0.03f;
             g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLights, 0, 0);
+
 
             g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
         }

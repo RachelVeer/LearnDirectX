@@ -52,7 +52,7 @@ struct PointLight
 #define NR_POINT_LIGHTS 4
 cbuffer PointLight : register(b3)
 {
-    PointLight pointLights;
+    PointLight pointLights[NR_POINT_LIGHTS];
 }
 
 float4 CalcDirLight(DirLight light, float4 normal, float4 viewDir, float4 mDiffuse, float4 mSpecular);
@@ -71,7 +71,7 @@ float4 PSmain(float4 pos : SV_POSITION, float4 normal : NORMAL, float4 worldPos 
     float4 result = CalcDirLight(dirLight, norm, viewDir, mDiffuse, mSpecular);
     // Phase 2: Point lights
     for (int i = 0; i < NR_POINT_LIGHTS; i++)
-        result += CalcPointLight(pointLights, norm, worldPos, viewDir, mDiffuse, mSpecular);
+        result += CalcPointLight(pointLights[i], norm, worldPos, viewDir, mDiffuse, mSpecular);
     // Phase 3: Spot light
     // ...
     PixelColor = result;
