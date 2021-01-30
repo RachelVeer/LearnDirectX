@@ -440,65 +440,6 @@ void InitDirect3D()
         g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
 
     }
-    // Material Constant
-    {
-        // Fill in the buffer description.
-        D3D11_BUFFER_DESC cbDesc = {};
-        cbDesc.ByteWidth = sizeof(Material);
-        cbDesc.Usage = D3D11_USAGE_DEFAULT;
-        cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        cbDesc.CPUAccessFlags = 0;
-        cbDesc.MiscFlags = 0;
-        cbDesc.StructureByteStride = 0;
-
-        // Create the buffer.
-        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_MaterialCB);
-
-        // Initialize the constant.  
-        // TODO: calculate this in a way where there are seperate contants...
-        // i.e. some of these don't need to constantly change (see DX samples).
-
-        Material material = {};
-        material.shininess = 64.0f;
-        g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
-    }
-    // Directional Light Constant
-    {
-        // Fill in the buffer description.
-        D3D11_BUFFER_DESC cbDesc = {};
-        cbDesc.ByteWidth = sizeof(DirLight);
-        cbDesc.Usage = D3D11_USAGE_DEFAULT;
-        cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        cbDesc.CPUAccessFlags = 0;
-        cbDesc.MiscFlags = 0;
-        cbDesc.StructureByteStride = 0;
-
-        // Create the buffer.
-        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_DirLightCB);
-
-        // Initialize the constant.  
-        DirLight dirLight = {};
-        g_ImmediateContext->UpdateSubresource(g_DirLightCB.Get(), 0, nullptr, &dirLight, 0, 0);
-    }
-
-    // Point Light Constant
-    {
-        // Fill in the buffer description.
-        D3D11_BUFFER_DESC cbDesc = {};
-        cbDesc.ByteWidth = sizeof(PointLight[4]);
-        cbDesc.Usage = D3D11_USAGE_DEFAULT;
-        cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        cbDesc.CPUAccessFlags = 0;
-        cbDesc.MiscFlags = 0;
-        cbDesc.StructureByteStride = 0;
-
-        // Create the buffer.
-        g_d3dDevice->CreateBuffer(&cbDesc, nullptr, &g_PointLightCB);
-
-        // Zero initialize.
-        PointLight pointLight = {};
-        g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLight, 0, 0);
-    }
 }
 
 void ProcessInput()
@@ -531,9 +472,6 @@ void Render(float angle, Model ourModel)
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
     g_ImmediateContext->PSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
-    g_ImmediateContext->PSSetConstantBuffers(1, 1, g_MaterialCB.GetAddressOf());
-    g_ImmediateContext->PSSetConstantBuffers(2, 1, g_DirLightCB.GetAddressOf());
-    g_ImmediateContext->PSSetConstantBuffers(3, 1, g_PointLightCB.GetAddressOf());
 
     // First cube.
     {
@@ -553,22 +491,6 @@ void Render(float angle, Model ourModel)
             cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
             g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
         }
-
-        // Material properties
-        {
-            Material material = {};
-            material.shininess = 64.0f;
-            g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
-        }
-
-        // Directional light.
-        DirLight dirLight = {};
-        dirLight.direction = XMFLOAT4(-0.2f, -1.0f, -0.3f, 1.0f);
-        dirLight.ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-        dirLight.diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
-        dirLight.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-        g_ImmediateContext->UpdateSubresource(g_DirLightCB.Get(), 0, nullptr, &dirLight, 0, 0);
-
 
         // Draw model here
         ourModel.Draw();

@@ -43,7 +43,7 @@ public:
     {
         UINT stride = sizeof(Vertex);
         UINT offset = 0;
-        m_ImmediateContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+        m_ImmediateContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
         m_ImmediateContext->IASetVertexBuffers(0, 1, m_VertexBuffer.GetAddressOf(), &stride, &offset);
         m_ImmediateContext->DrawIndexed(m_Indices.size(), 0, 0);
     }
@@ -110,7 +110,7 @@ private:
             m_d3dDevice->CreateBuffer(&bufferDesc, &InitData, &m_IndexBuffer);
 
             // Set the buffer.
-            m_ImmediateContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+            m_ImmediateContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
         }
 
         // Set the input layout.

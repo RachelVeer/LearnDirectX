@@ -18,7 +18,6 @@ public:
     {
         this->m_d3dDevice = device;
         this->m_ImmediateContext = immediateContext;
-        this->m_ImmediateContext = immediateContext;
         this->m_VertexShader = vs;
         this->m_VertexLayout = vLayout;
         this->m_VertexBuffer = vb;
