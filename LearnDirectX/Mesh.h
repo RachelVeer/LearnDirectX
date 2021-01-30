@@ -66,13 +66,14 @@ private:
             D3D11_BUFFER_DESC bufferDesc = {};
             bufferDesc.Usage = D3D11_USAGE_DEFAULT;
             bufferDesc.ByteWidth = sizeof(Vertex) * (UINT)m_Vertices.size();
+            bufferDesc.StructureByteStride = sizeof(Vertex);
             bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
             bufferDesc.CPUAccessFlags = 0;
             bufferDesc.MiscFlags = 0;
 
             // Fill in subresource data. 
             D3D11_SUBRESOURCE_DATA InitData = {};
-            InitData.pSysMem = &m_Vertices[0];
+            InitData.pSysMem = m_Vertices.data();
             InitData.SysMemPitch = 0;
             InitData.SysMemSlicePitch = 0;
 
@@ -90,13 +91,14 @@ private:
             D3D11_BUFFER_DESC bufferDesc = {};
             bufferDesc.Usage = D3D11_USAGE_DEFAULT;
             bufferDesc.ByteWidth = sizeof(unsigned int) * (UINT)m_Indices.size();
+            bufferDesc.StructureByteStride = sizeof(unsigned int);
             bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
             bufferDesc.CPUAccessFlags = 0;
             bufferDesc.MiscFlags = 0;
 
             // Define the resource data.
             D3D11_SUBRESOURCE_DATA InitData = {};
-            InitData.pSysMem = &m_Indices[0];
+            InitData.pSysMem = m_Indices.data();
             InitData.SysMemPitch = 0;
             InitData.SysMemSlicePitch = 0;
 
