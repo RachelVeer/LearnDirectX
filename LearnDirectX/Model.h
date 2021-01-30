@@ -54,7 +54,7 @@ private:
     void loadModel(std::string path)
     {
         Assimp::Importer import;
-        const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_ConvertToLeftHanded | aiProcess_FlipUVs | aiProcess_FlipWindingOrder);
+        const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate);
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         {
