@@ -12,6 +12,8 @@
 #include "Timer.h"
 #include "Shader.h"
 #include "Camera.h"
+#include "Model.h"
+#include "filesystem.h"
 
 #include <array> // for std::size
 #include <string>
@@ -95,6 +97,7 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> g_VertexBuffer;
 Microsoft::WRL::ComPtr<ID3D11InputLayout> g_VertexLayout;
 Microsoft::WRL::ComPtr<ID3D11InputLayout> g_LightVertexLayout;
 Microsoft::WRL::ComPtr<ID3D11VertexShader> g_VertexShader;
+Microsoft::WRL::ComPtr<ID3DBlob> g_VertexBlob;
 Microsoft::WRL::ComPtr<ID3D11VertexShader> g_LightVertexShader;
 Microsoft::WRL::ComPtr<ID3D11PixelShader> g_PixelShader;
 Microsoft::WRL::ComPtr<ID3D11PixelShader> g_LightPixelShader;
@@ -146,7 +149,7 @@ XMFLOAT4 lightPosition = XMFLOAT4(-1.2f, 1.0f, 2.0f, 1.0f);
 void InitWindow(HINSTANCE hInstance);
 void InitDirect3D();
 void ProcessInput();
-void Render(float angle);
+void Render(float angle, Model ourModel);
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
@@ -154,6 +157,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     InitWindow(hInstance);
     InitDirect3D();
+
+    Model ourModel(g_d3dDevice.Get(), g_ImmediateContext.Get(), g_VertexBlob.Get(), g_VertexLayout.Get(), g_VertexBuffer.Get(),
+        g_IndexBuffer.Get(), FileSystem::getPath("resources/objects/backpack/backpack.obj"));
+
 
     // Message loop.
     MSG msg = {0};
@@ -175,7 +182,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         }
         // Render loop.
         {
-            Render(1.0f);
+            Render(1.0f, ourModel);
         }
     }
 
@@ -349,174 +356,15 @@ void InitDirect3D()
     Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
     Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 
-    // First cube shader.
-    {
-        Shader CompileVertex(L"VertexShader.hlsl","VSmain", "vs_4_0", &vertexShader);
-        Shader CompilePixel(L"PixelShader.hlsl","PSmain", "ps_4_0", &pixelShader);
+    Shader CompileVertex(L"VertexShader.hlsl", "VSmain", "vs_4_0", &vertexShader);
+    Shader CompilePixel(L"PixelShader.hlsl", "PSmain", "ps_4_0", &pixelShader);
 
-        // Create Vertex Shader.
-        g_d3dDevice->CreateVertexShader(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), nullptr, &g_VertexShader);
-        // Create Pixel Shader.
-        g_d3dDevice->CreatePixelShader(pixelShader->GetBufferPointer(), pixelShader->GetBufferSize(), nullptr, &g_PixelShader);
-        // Define Input (vertex) Layout
-        D3D11_INPUT_ELEMENT_DESC layout[] =
-        {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        };
+    // Create Vertex Shader.
+    g_d3dDevice->CreateVertexShader(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), nullptr, &g_VertexShader);
+    // Create Pixel Shader.
+    g_d3dDevice->CreatePixelShader(pixelShader->GetBufferPointer(), pixelShader->GetBufferSize(), nullptr, &g_PixelShader);
 
-        g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_VertexLayout);
-    }
-    // Light cube shader.
-    {
-        Shader CompileVertex(L"LightVertex.hlsl","VSmain", "vs_4_0", &vertexShader);
-        Shader CompilePixel(L"LightPixel.hlsl","PSmain", "ps_4_0", &pixelShader);
-
-        // Create Vertex Shader.
-        g_d3dDevice->CreateVertexShader(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), nullptr, &g_LightVertexShader);
-        // Create Pixel Shader.
-        g_d3dDevice->CreatePixelShader(pixelShader->GetBufferPointer(), pixelShader->GetBufferSize(), nullptr, &g_LightPixelShader);
-
-         // Define Input (vertex) Layout
-        D3D11_INPUT_ELEMENT_DESC layout[] =
-        {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        };
-
-        g_d3dDevice->CreateInputLayout(layout, (UINT)std::size(layout), vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), &g_LightVertexLayout);
-    }
-
-    // Vertex stuff
-    struct Vertex
-    {
-        XMFLOAT3 pos;
-        XMFLOAT3 normal;
-        XMFLOAT2 tex;
-    };
-
-    Vertex vertices[] = {
-        // Position                       // Normals                  // Texture coordinates
-        // Top
-        { XMFLOAT3( -0.5f, 0.5f, -0.5f),  XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
-        { XMFLOAT3(  0.5f, 0.5f, -0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
-        { XMFLOAT3(  0.5f, 0.5f,  0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
-        { XMFLOAT3( -0.5f, 0.5f,  0.5f ), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
-
-        // Bottom
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
-        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
-        { XMFLOAT3(  0.5f, -0.5f,  0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
-        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
-
-        // Left
-        { XMFLOAT3( -0.5f, -0.5f,  0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
-        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
-        { XMFLOAT3( -0.5f,  0.5f,  0.5f ), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
-
-        // Right
-        { XMFLOAT3( 0.5f, -0.5f,  0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f)},
-        { XMFLOAT3( 0.5f, -0.5f, -0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f)},
-        { XMFLOAT3( 0.5f,  0.5f, -0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f)},
-        { XMFLOAT3( 0.5f,  0.5f,  0.5f ) , XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f)},
-
-        // Back
-        { XMFLOAT3( -0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f) },
-        { XMFLOAT3(  0.5f, -0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 1.0f) },
-        { XMFLOAT3(  0.5f,  0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 0.0f) },
-        { XMFLOAT3( -0.5f,  0.5f, -0.5f ), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 0.0f) },
-
-        // Front
-        { XMFLOAT3( -0.5f, -0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 1.0f) },
-        { XMFLOAT3(  0.5f, -0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 1.0f) },
-        { XMFLOAT3(  0.5f,  0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) },
-        { XMFLOAT3( -0.5f,  0.5f, 0.5f ), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 0.0f) },
-
-    };
-
-    g_verticesSize = (UINT)std::size(vertices);
-
-    // Create the Vertex buffer.
-    {
-        // Fill in buffer description.
-        D3D11_BUFFER_DESC bufferDesc = {};
-        bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-        bufferDesc.ByteWidth = sizeof(Vertex) * (UINT)std::size(vertices);
-        bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-        bufferDesc.CPUAccessFlags = 0;
-        bufferDesc.MiscFlags = 0;
-
-        // Fill in subresource data. 
-        D3D11_SUBRESOURCE_DATA InitData = {};
-        InitData.pSysMem = vertices;
-        InitData.SysMemPitch = 0;
-        InitData.SysMemSlicePitch = 0;
-
-        // Create the vertex buffer.
-        g_d3dDevice->CreateBuffer(&bufferDesc, &InitData, &g_VertexBuffer);
-
-        UINT stride = sizeof(Vertex);
-        UINT offset = 0;
-        g_ImmediateContext->IASetVertexBuffers(0, 1, g_VertexBuffer.GetAddressOf(), &stride, &offset);
-    }
-
-    // Create Index buffer.
-    {
-        // Create indices.
-        unsigned int indices[] = 
-        { 
-            3,1,0,
-            2,1,3,
-
-            6,4,5,
-            7,4,6,
-
-            11,9,8,
-            10,9,11,
-
-            14,12,13,
-            15,12,14,
-
-            19,17,16,
-            18,17,19,
-
-            22,20,21,
-            23,20,22
-
-        };
-
-        g_indexCount = (UINT)std::size(indices);
-
-        // Fill in buffer description.
-        D3D11_BUFFER_DESC bufferDesc = {};
-        bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-        bufferDesc.ByteWidth = sizeof(unsigned int) * (UINT)std::size(indices);
-        bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-        bufferDesc.CPUAccessFlags = 0;
-        bufferDesc.MiscFlags = 0;
-
-        // Define the resource data.
-        D3D11_SUBRESOURCE_DATA InitData = {};
-        InitData.pSysMem = indices;
-        InitData.SysMemPitch = 0;
-        InitData.SysMemSlicePitch = 0;
-
-        // Create the buffer with the device.
-        g_d3dDevice->CreateBuffer(&bufferDesc, &InitData, &g_IndexBuffer);
-
-        // Set the buffer.
-        g_ImmediateContext->IASetIndexBuffer(g_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-    }
-
-    // Set the input layout.
-    g_ImmediateContext->IASetInputLayout(g_VertexLayout.Get());
-    g_ImmediateContext->IASetInputLayout(g_LightVertexLayout.Get());
-
-    // Set topology.
-    g_ImmediateContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    g_VertexBlob = vertexShader;
 
     // Texture stuffs
     {
@@ -673,7 +521,7 @@ void ProcessInput()
     }
 }
 
-void Render(float angle)
+void Render(float angle, Model ourModel)
 {
     g_ImmediateContext->OMSetRenderTargets(1, g_RenderTargetView.GetAddressOf(), g_DSV.Get());
     g_ImmediateContext->ClearRenderTargetView(g_RenderTargetView.Get(), g_color);
@@ -689,107 +537,41 @@ void Render(float angle)
 
     // First cube.
     {
-        for (unsigned int i = 0; i < 10; i++)
-        {
-            // Model matrix.
-            XMMATRIX model = XMMatrixIdentity();
-            float angle = 20.0f * i;
-            model = XMMatrixRotationX(XMConvertToRadians(angle)) *
-                XMMatrixRotationY(XMConvertToRadians(angle)) *
-                XMMatrixTranslation(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z);
-            // Camera/viewspace matrix.
-            XMMATRIX view = camera.GetViewMatrix();
-            // Projection matrix.
-            XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
-
-            // Supply vertex shader constant data.
-            {
-                Transform cb = {};
-                cb.model = XMMatrixTranspose(model);
-                cb.view = XMMatrixTranspose(view);
-                cb.projection = XMMatrixTranspose(projection);
-                cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
-                g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
-            }
-
-            // Material properties
-            {
-                Material material = {};
-                material.shininess = 64.0f;
-                g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
-            }
-
-            // Directional light.
-            DirLight dirLight = {};
-            dirLight.direction = XMFLOAT4(-0.2f, -1.0f, -0.3f, 1.0f);
-            dirLight.ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-            dirLight.diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
-            dirLight.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-            g_ImmediateContext->UpdateSubresource(g_DirLightCB.Get(), 0, nullptr, &dirLight, 0, 0);
-            // Point light 1
-            PointLight pointLights[4] = {};
-            pointLights[0].position = pointLightPositions[0];
-            pointLights[0].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-            pointLights[0].diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
-            pointLights[0].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-            pointLights[0].constant = 1.0f;
-            pointLights[0].linearL = 0.09f;
-            pointLights[0].quadratic = 0.03f;
-           // g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLights, 0, 0);
-            // Point light 2
-            pointLights[1].position = pointLightPositions[1];
-            pointLights[1].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-            pointLights[1].diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
-            pointLights[1].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-            pointLights[1].constant = 1.0f;
-            pointLights[1].linearL = 0.09f;
-            pointLights[1].quadratic = 0.03f;
-            //g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLights, 0, 0);
-            // Point light 3
-            pointLights[2].position = pointLightPositions[2];
-            pointLights[2].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-            pointLights[2].diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
-            pointLights[2].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-            pointLights[2].constant = 1.0f;
-            pointLights[2].linearL = 0.09f;
-            pointLights[2].quadratic = 0.03f;
-            //g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLights, 0, 0);
-            // Point light 3
-            pointLights[3].position = pointLightPositions[3];
-            pointLights[3].ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
-            pointLights[3].diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
-            pointLights[3].specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-            pointLights[3].constant = 1.0f;
-            pointLights[3].linearL = 0.09f;
-            pointLights[3].quadratic = 0.03f;
-            g_ImmediateContext->UpdateSubresource(g_PointLightCB.Get(), 0, nullptr, &pointLights, 0, 0);
-
-
-            g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
-        }
-    }
-
-    g_ImmediateContext->VSSetShader(g_LightVertexShader.Get(), nullptr, 0);
-    g_ImmediateContext->PSSetShader(g_LightPixelShader.Get(), nullptr, 0);
-    // Light cube.
-    {
         // Model matrix.
-        XMMATRIX model = XMMatrixScaling(0.2f, 0.2f, 0.2f) *
-                        XMMatrixRotationX(XMConvertToRadians(angle)) *
-                        XMMatrixRotationY(XMConvertToRadians(angle)) *
-                        XMMatrixTranslation(lightPosition.x, lightPosition.y, lightPosition.z);
+        XMMATRIX model = XMMatrixIdentity();
         // Camera/viewspace matrix.
         XMMATRIX view = camera.GetViewMatrix();
         // Projection matrix.
         XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
 
         // Supply vertex shader constant data.
-        Transform cb = {};
-        cb.model = XMMatrixTranspose(model);
-        cb.view = XMMatrixTranspose(view);
-        cb.projection = XMMatrixTranspose(projection);
-        g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0 );
-        g_ImmediateContext->DrawIndexed(g_indexCount, 0, 0);
+        {
+            Transform cb = {};
+            cb.model = XMMatrixTranspose(model);
+            cb.view = XMMatrixTranspose(view);
+            cb.projection = XMMatrixTranspose(projection);
+            cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
+            g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
+        }
+
+        // Material properties
+        {
+            Material material = {};
+            material.shininess = 64.0f;
+            g_ImmediateContext->UpdateSubresource(g_MaterialCB.Get(), 0, nullptr, &material, 0, 0);
+        }
+
+        // Directional light.
+        DirLight dirLight = {};
+        dirLight.direction = XMFLOAT4(-0.2f, -1.0f, -0.3f, 1.0f);
+        dirLight.ambient = XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
+        dirLight.diffuse = XMFLOAT4(0.4f, 0.4f, 0.8f, 1.0f);
+        dirLight.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+        g_ImmediateContext->UpdateSubresource(g_DirLightCB.Get(), 0, nullptr, &dirLight, 0, 0);
+
+
+        // Draw model here
+        ourModel.Draw();
     }
 
     g_SwapChain->Present(1, 0);
