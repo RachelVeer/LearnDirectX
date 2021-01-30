@@ -159,7 +159,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     InitDirect3D();
 
     Model ourModel(g_d3dDevice.Get(), g_ImmediateContext.Get(), g_VertexBlob.Get(), g_VertexLayout.Get(), g_VertexBuffer.Get(),
-        g_IndexBuffer.Get(), FileSystem::getPath("resources/objects/backpack/backpack.obj"));
+        g_IndexBuffer.Get(), g_Resource.Get(), g_ShaderResourceView.Get(), g_SamplerState.Get(), FileSystem::getPath("resources/objects/backpack/backpack.obj"));
 
 
     // Message loop.
@@ -366,33 +366,6 @@ void InitDirect3D()
 
     g_VertexBlob = vertexShader;
 
-    // Texture stuffs
-    {
-        // Lightweight DDS file loader from the DirectX Tool Kit.
-        // Source: https://github.com/Microsoft/DirectXTK/wiki/DDSTextureLoader
-        CreateDDSTextureFromFile(g_d3dDevice.Get(), L"Assets/Textures/container2.dds", &g_Resource, &g_ShaderResourceView);
-
-        // Create sample state.
-        D3D11_SAMPLER_DESC samplerDesc = {};
-        SecureZeroMemory(&samplerDesc, sizeof(samplerDesc));
-        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-        samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-        samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-        samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-        samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-        samplerDesc.MinLOD = 0;
-        samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-        g_d3dDevice->CreateSamplerState(&samplerDesc, &g_SamplerState);
-
-        // Set shader resource for first texture.
-        g_ImmediateContext->PSSetShaderResources(0, 1, g_ShaderResourceView.GetAddressOf());
-        // Create second texture & set shader resource for it.  
-        CreateDDSTextureFromFile(g_d3dDevice.Get(), L"Assets/Textures/container2_specular.dds", &g_Resource, &g_ShaderResourceView);
-        g_ImmediateContext->PSSetShaderResources(1, 1, g_ShaderResourceView.GetAddressOf());
-        // Bind sampler state.
-        g_ImmediateContext->PSSetSamplers(0, 1, g_SamplerState.GetAddressOf());
-    }
-
     // Blending
     {
         D3D11_BLEND_DESC1 blendState = {};
@@ -473,28 +446,26 @@ void Render(float angle, Model ourModel)
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
     g_ImmediateContext->PSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
 
-    // First cube.
+    // Model matrix.
+    XMMATRIX model = XMMatrixIdentity();
+    // Camera/viewspace matrix.
+    XMMATRIX view = camera.GetViewMatrix();
+    // Projection matrix.
+    XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
+
+    // Supply vertex shader constant data.
     {
-        // Model matrix.
-        XMMATRIX model = XMMatrixIdentity();
-        // Camera/viewspace matrix.
-        XMMATRIX view = camera.GetViewMatrix();
-        // Projection matrix.
-        XMMATRIX projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(65.0f), g_width / g_height, 0.1f, 100.f);
-
-        // Supply vertex shader constant data.
-        {
-            Transform cb = {};
-            cb.model = XMMatrixTranspose(model);
-            cb.view = XMMatrixTranspose(view);
-            cb.projection = XMMatrixTranspose(projection);
-            cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
-            g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
-        }
-
-        // Draw model here
-        ourModel.Draw();
+        Transform cb = {};
+        cb.model = XMMatrixTranspose(model);
+        cb.view = XMMatrixTranspose(view);
+        cb.projection = XMMatrixTranspose(projection);
+        cb.viewPos = XMFLOAT4(camera.Position.x, camera.Position.y, camera.Position.z, 1.0f);
+        g_ImmediateContext->UpdateSubresource(g_TransformCB.Get(), 0, nullptr, &cb, 0, 0);
     }
+
+    // Draw model here
+    ourModel.Draw();
+
 
     g_SwapChain->Present(1, 0);
 }
@@ -525,14 +496,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if(wParam == 'D')
             {
                moveRight = true;
-            }
-            if(wParam == VK_UP)
-            {
-                lightPosition.z -= 0.05f;
-            }
-            if(wParam == VK_DOWN)
-            {
-                lightPosition.z += 0.05f;
             }
             break;
         }

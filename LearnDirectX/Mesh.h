@@ -4,11 +4,19 @@
 #include <d3d11_1.h>
 #include <DirectXMath.h>
 #include <vector>
+#include <string>
 
 struct Vertex
 {
-    DirectX::XMFLOAT4 Position;
-    DirectX::XMFLOAT4 Normal;
+    DirectX::XMFLOAT3 Position;
+    DirectX::XMFLOAT3 Normal;
+    DirectX::XMFLOAT2 TexCoords;
+};
+
+struct Texture {
+    unsigned int id;
+    std::string type;
+    std::string path;
 };
 
 class Mesh
@@ -23,13 +31,15 @@ public:
     // Mesh data.
     std::vector<Vertex> m_Vertices;
     std::vector<unsigned int> m_Indices;
+    std::vector<Texture> m_Textures;
 
     Mesh(ID3D11Device1* device, ID3D11DeviceContext* immediateContext, ID3DBlob* vs, ID3D11InputLayout* vLayout,
-        ID3D11Buffer* vb, ID3D11Buffer* ib,
-        std::vector<Vertex> vertices, std::vector<unsigned int> indices)
+        ID3D11Buffer* vb, ID3D11Buffer* ib, std::vector<Vertex> vertices, 
+        std::vector<unsigned int> indices, std::vector<Texture> textures)
     {
         this->m_Vertices = vertices;
         this->m_Indices = indices;
+        this->m_Textures = textures;
         this->m_d3dDevice = device;
         this->m_ImmediateContext = immediateContext;
         this->m_VertexShader = vs;
@@ -41,11 +51,14 @@ public:
     }
     void Draw() // Seems draw taking in shader is for constant buffer stuff essentially. We'll see.
     {
+
+
         UINT stride = sizeof(Vertex);
         UINT offset = 0;
         m_ImmediateContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
         m_ImmediateContext->IASetVertexBuffers(0, 1, m_VertexBuffer.GetAddressOf(), &stride, &offset);
-        m_ImmediateContext->DrawIndexed(m_Indices.size(), 0, 0);
+        //m_ImmediateContext->DrawIndexed((UINT)m_Indices.size(), 0, 0);
+        m_ImmediateContext->Draw((UINT)m_Vertices.size(), 0);
     }
 private:
     // set d3d members here?

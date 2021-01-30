@@ -1,7 +1,5 @@
-Texture2D txDiffuse[2] : register(t0);
+Texture2D txDiffuse[1] : register(t0);
 SamplerState samLinear : register(s0);
-
-static float4 PixelColor;
 
 cbuffer Transform : register(b0)
 {
@@ -16,5 +14,5 @@ cbuffer Transform : register(b0)
 float4 PSmain(float4 pos : SV_POSITION, float4 normal : NORMAL, float4 worldPos : Position, float2 tex : TexCoord) : SV_TARGET
 {
     
-    return float4(1.0f, 1.0f, 1.0f, 1.0f);
+    return txDiffuse[0].Sample(samLinear, tex);
 }
