@@ -41,6 +41,10 @@ public:
     }
     void Draw() // Seems draw taking in shader is for constant buffer stuff essentially. We'll see.
     {
+        UINT stride = sizeof(Vertex);
+        UINT offset = 0;
+        m_ImmediateContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+        m_ImmediateContext->IASetVertexBuffers(0, 1, m_VertexBuffer.GetAddressOf(), &stride, &offset);
         m_ImmediateContext->DrawIndexed(m_Indices.size(), 0, 0);
     }
 private:
