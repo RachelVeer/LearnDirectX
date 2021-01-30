@@ -35,60 +35,11 @@ struct Transform
     XMFLOAT4 viewPos;
 };
 
-struct Material
-{
-    float shininess;
-    float padding[3];
-};
-
-struct DirLight
-{
-    XMFLOAT4 direction;
-
-    XMFLOAT4 ambient;
-    XMFLOAT4 diffuse;
-    XMFLOAT4 specular;
-};
-
-struct PointLight
-{
-    XMFLOAT4 position;
-
-    float constant;
-    float linearL;
-    float quadratic;
-    float padding;
-
-    XMFLOAT4 ambient;
-    XMFLOAT4 diffuse;
-    XMFLOAT4 specular;
-};
-
-XMFLOAT3 cubePositions[] = {
-            XMFLOAT3( 0.0f,  0.0f, 0.0f),
-            XMFLOAT3( 2.0f,  5.0f, -15.0f),
-            XMFLOAT3(-1.5f, -2.2f, -2.5f),
-            XMFLOAT3(-3.8f, -2.0f, -12.3f),
-            XMFLOAT3( 2.4f, -0.4f, -3.5f),
-            XMFLOAT3(-1.7f,  3.0f, -7.5f),
-            XMFLOAT3( 1.3f, -2.0f, -2.5f),
-            XMFLOAT3( 1.5f,  2.0f, -2.5f),
-            XMFLOAT3( 1.5f,  0.2f, -1.5f),
-            XMFLOAT3(-1.3f,  1.0f, -1.5f)
-};
-
-// Positions of the point lights.
-XMFLOAT4 pointLightPositions[] = {
-    XMFLOAT4(0.7f,  0.2f,  2.0f, 1.0f),
-    XMFLOAT4(2.3f, -3.3f, -4.0f, 1.0f),
-    XMFLOAT4(-4.0f,  2.0f, -12.0f, 1.0f),
-    XMFLOAT4(0.0f,  0.0f, -3.0f, 1.0f)
-};
-
 // Globals.
 HWND g_hWnd = nullptr;
 LPCTSTR g_windowClass = L"Learn DirectX Class";
 Microsoft::WRL::ComPtr<IDXGIFactory2> g_IDXGIFactory;
+Microsoft::WRL::ComPtr<ID3D11RasterizerState> g_ID3D11RasterizerState;
 Microsoft::WRL::ComPtr<ID3D11Device1> g_d3dDevice;
 Microsoft::WRL::ComPtr<ID3D11DeviceContext> g_ImmediateContext;
 Microsoft::WRL::ComPtr<IDXGISwapChain1> g_SwapChain;
@@ -444,10 +395,10 @@ void Render(float angle, Model ourModel)
     g_ImmediateContext->VSSetShader(g_VertexShader.Get(), nullptr, 0);
     g_ImmediateContext->PSSetShader(g_PixelShader.Get(), nullptr, 0);
     g_ImmediateContext->VSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
-    g_ImmediateContext->PSSetConstantBuffers(0, 1, g_TransformCB.GetAddressOf());
 
     // Model matrix.
     XMMATRIX model = XMMatrixIdentity();
+    model = XMMatrixScaling(0.5f, 0.5f, 0.5f);
     // Camera/viewspace matrix.
     XMMATRIX view = camera.GetViewMatrix();
     // Projection matrix.

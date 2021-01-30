@@ -54,7 +54,7 @@ private:
     void loadModel(std::string path)
     {
         Assimp::Importer import;
-        const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_ConvertToLeftHanded);
+        const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_ConvertToLeftHanded | aiProcess_FlipUVs | aiProcess_FlipWindingOrder);
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         {
@@ -102,11 +102,11 @@ private:
 
             if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
             {
-                DirectX::XMFLOAT2 vector;
-                vector.x = (float)mesh->mTextureCoords[0][i].x;
-                vector.y = (float)mesh->mTextureCoords[0][i].y;
+                DirectX::XMFLOAT2 vec;
+                vec.x = mesh->mTextureCoords[0][i].x;
+                vec.y = mesh->mTextureCoords[0][i].y;
                 
-                vertex.TexCoords = vector;
+                vertex.TexCoords = vec;
             }
             else
             {
@@ -129,9 +129,6 @@ private:
             std::vector<Texture> diffuseMaps = loadMaterialTextures(material,
                 aiTextureType_DIFFUSE, "texture_diffuse");
             textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-            std::vector<Texture> specularMaps = loadMaterialTextures(material,
-                aiTextureType_SPECULAR, "texture_specular");
-            textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
         }
 
         return Mesh(m_d3dDevice.Get(), m_ImmediateContext.Get(), m_VertexShader.Get(), m_VertexLayout.Get(), 
