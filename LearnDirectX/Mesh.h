@@ -33,8 +33,7 @@ public:
     std::vector<unsigned int> m_Indices;
     std::vector<Texture> m_Textures;
 
-    Mesh(ID3D11Device1* device, ID3D11DeviceContext* immediateContext, ID3DBlob* vs, ID3D11InputLayout* vLayout,
-        ID3D11Buffer* vb, ID3D11Buffer* ib, std::vector<Vertex> vertices, 
+    Mesh(ID3D11Device1* device, ID3D11DeviceContext* immediateContext, ID3DBlob* vs, std::vector<Vertex> vertices, 
         std::vector<unsigned int> indices, std::vector<Texture> textures)
     {
         this->m_Vertices = vertices;
@@ -43,9 +42,6 @@ public:
         this->m_d3dDevice = device;
         this->m_ImmediateContext = immediateContext;
         this->m_VertexShader = vs;
-        this->m_VertexLayout = vLayout;
-        this->m_VertexBuffer = vb;
-        this->m_IndexBuffer = ib;
 
         setupMesh();
     }

@@ -44,18 +44,9 @@ Microsoft::WRL::ComPtr<ID3D11Device1> g_d3dDevice;
 Microsoft::WRL::ComPtr<ID3D11DeviceContext> g_ImmediateContext;
 Microsoft::WRL::ComPtr<IDXGISwapChain1> g_SwapChain;
 Microsoft::WRL::ComPtr<ID3D11RenderTargetView> g_RenderTargetView;
-Microsoft::WRL::ComPtr<ID3D11Buffer> g_VertexBuffer;
-Microsoft::WRL::ComPtr<ID3D11InputLayout> g_VertexLayout;
-Microsoft::WRL::ComPtr<ID3D11InputLayout> g_LightVertexLayout;
 Microsoft::WRL::ComPtr<ID3D11VertexShader> g_VertexShader;
 Microsoft::WRL::ComPtr<ID3DBlob> g_VertexBlob;
-Microsoft::WRL::ComPtr<ID3D11VertexShader> g_LightVertexShader;
 Microsoft::WRL::ComPtr<ID3D11PixelShader> g_PixelShader;
-Microsoft::WRL::ComPtr<ID3D11PixelShader> g_LightPixelShader;
-Microsoft::WRL::ComPtr<ID3D11Buffer> g_IndexBuffer;
-Microsoft::WRL::ComPtr<ID3D11Resource> g_Resource;
-Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> g_ShaderResourceView;
-Microsoft::WRL::ComPtr<ID3D11SamplerState> g_SamplerState;
 Microsoft::WRL::ComPtr<ID3D11BlendState1> g_BlendState;
 Microsoft::WRL::ComPtr<ID3D11DepthStencilState> g_DSState;
 Microsoft::WRL::ComPtr<ID3D11Texture2D> g_DepthStencil;
@@ -100,8 +91,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     InitWindow(hInstance);
     InitDirect3D();
 
-    Model ourModel(g_d3dDevice.Get(), g_ImmediateContext.Get(), g_VertexBlob.Get(), g_VertexLayout.Get(), g_VertexBuffer.Get(),
-        g_IndexBuffer.Get(), g_Resource.Get(), g_ShaderResourceView.Get(), g_SamplerState.Get(), 
+    Model ourModel(g_d3dDevice.Get(), g_ImmediateContext.Get(), g_VertexBlob.Get(), 
         FileSystem::getPath("resources/objects/diablo/98-Diablo_lowpoly_blender_addon.obj"));
 
 

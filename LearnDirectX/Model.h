@@ -15,20 +15,12 @@
 class Model
 {
 public:
-    Model(ID3D11Device1* device, ID3D11DeviceContext* immediateContext, ID3DBlob* vs, ID3D11InputLayout* vLayout,
-        ID3D11Buffer* vb, ID3D11Buffer* ib, ID3D11Resource* resource, ID3D11ShaderResourceView* srv,
-        ID3D11SamplerState* sampler,
+    Model(ID3D11Device1* device, ID3D11DeviceContext* immediateContext, ID3DBlob* vs,
         std::string const &path)
     {
         this->m_d3dDevice = device;
         this->m_ImmediateContext = immediateContext;
         this->m_VertexShader = vs;
-        this->m_VertexLayout = vLayout;
-        this->m_VertexBuffer = vb;
-        this->m_IndexBuffer = ib;
-        this->m_Resource = resource;
-        this->m_ShaderResourceView = srv;
-        this->m_SamplerState = sampler;
         loadModel(path);
     }
     void Draw()
@@ -42,7 +34,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_ImmediateContext;
     Microsoft::WRL::ComPtr<ID3DBlob> m_VertexShader;
     Microsoft::WRL::ComPtr<ID3D11InputLayout> m_VertexLayout;
-    Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer, m_VertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Resource> m_Resource;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_ShaderResourceView;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_SamplerState;
@@ -133,8 +124,7 @@ private:
             textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
         }
 
-        return Mesh(m_d3dDevice.Get(), m_ImmediateContext.Get(), m_VertexShader.Get(), m_VertexLayout.Get(),
-            m_VertexBuffer.Get(), m_IndexBuffer.Get(), vertices, indices, textures);
+        return Mesh(m_d3dDevice.Get(), m_ImmediateContext.Get(), m_VertexShader.Get(), vertices, indices, textures);
     }
 
     std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName)
