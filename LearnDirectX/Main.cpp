@@ -110,7 +110,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     InitDirect3D();
 
     Model ourModel(g_d3dDevice.Get(), g_ImmediateContext.Get(), g_VertexBlob.Get(), g_VertexLayout.Get(), g_VertexBuffer.Get(),
-        g_IndexBuffer.Get(), g_Resource.Get(), g_ShaderResourceView.Get(), g_SamplerState.Get(), FileSystem::getPath("resources/objects/backpack/backpack.obj"));
+        g_IndexBuffer.Get(), g_Resource.Get(), g_ShaderResourceView.Get(), g_SamplerState.Get(), 
+        FileSystem::getPath("resources/objects/diablo/98-Diablo_lowpoly_blender_addon.obj"));
 
 
     // Message loop.
@@ -398,7 +399,7 @@ void Render(float angle, Model ourModel)
 
     // Model matrix.
     XMMATRIX model = XMMatrixIdentity();
-    model = XMMatrixScaling(0.5f, 0.5f, 0.5f);
+    model = XMMatrixScaling(0.01f, 0.01f, 0.01f);
     // Camera/viewspace matrix.
     XMMATRIX view = camera.GetViewMatrix();
     // Projection matrix.

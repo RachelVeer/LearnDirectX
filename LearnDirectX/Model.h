@@ -55,7 +55,7 @@ private:
     {
         Assimp::Importer import;
         const aiScene* scene = import.ReadFile(path, 
-            aiProcess_Triangulate | aiProcess_JoinIdenticalVertices
+            aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_FlipUVs
          );
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
@@ -172,7 +172,7 @@ private:
         // Lightweight DDS file loader from the DirectX Tool Kit.
         // Source: https://github.com/Microsoft/DirectXTK/wiki/DDSTextureLoader
         // Directory seems relative to project path. 
-        DirectX::CreateDDSTextureFromFile(m_d3dDevice.Get(), L"../resources/objects/backpack/diffuse.dds", &m_Resource, &m_ShaderResourceView);
+        DirectX::CreateDDSTextureFromFile(m_d3dDevice.Get(), L"../resources/objects/diablo/Diablo_diff.dds", &m_Resource, &m_ShaderResourceView);
 
         // Create sample state.
         D3D11_SAMPLER_DESC samplerDesc = {};
