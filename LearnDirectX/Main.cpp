@@ -61,17 +61,11 @@ Microsoft::WRL::ComPtr<ID3D11DepthStencilState> g_DSState;
 Microsoft::WRL::ComPtr<ID3D11Texture2D> g_DepthStencil;
 Microsoft::WRL::ComPtr<ID3D11DepthStencilView> g_DSV;
 Microsoft::WRL::ComPtr<ID3D11Buffer> g_TransformCB;
-Microsoft::WRL::ComPtr<ID3D11Buffer> g_MaterialCB;
-Microsoft::WRL::ComPtr<ID3D11Buffer> g_DirLightCB;
-Microsoft::WRL::ComPtr<ID3D11Buffer> g_PointLightCB;
 
 float g_width = 1600.0f;
 float g_height = 900.0f;
 
-UINT g_verticesSize = 0;
-UINT g_indexCount = 0;
-
-const float g_color[] = { 0.12f, 0.12f, 0.16f, 1.0f };
+const float g_color[] = { 0.05f, 0.05f, 0.05f, 1.0f };
 XMMATRIX g_transform;
 
 Timer timer; // For simple maths
@@ -92,9 +86,6 @@ bool moveBackward;
 bool moveLeft;
 bool moveRight;
 bool clip = false;
-
-// Lighting.
-XMFLOAT4 lightPosition = XMFLOAT4(-1.2f, 1.0f, 2.0f, 1.0f);
 
 // Forward declarations
 void InitWindow(HINSTANCE hInstance);
@@ -121,7 +112,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         deltaTime = dt.Mark();
         float angle = timer.Peek();
         ProcessInput();
-        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             // Check for quit because peekmessage does not signal this via return value.
 		    if( msg.message == WM_QUIT )
@@ -132,9 +123,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        else
         // Render loop.
         {
-            Render(1.0f, ourModel);
+            Render(timer.Peek(), ourModel);
         }
     }
 
@@ -399,7 +391,7 @@ void Render(float angle, Model ourModel)
 
     // Model matrix.
     XMMATRIX model = XMMatrixIdentity();
-    model = XMMatrixScaling(0.01f, 0.01f, 0.01f);
+    model = XMMatrixScaling(0.01f, 0.01f, 0.01f) * XMMatrixRotationY(XMConvertToRadians(angle * 20.0f));
     // Camera/viewspace matrix.
     XMMATRIX view = camera.GetViewMatrix();
     // Projection matrix.

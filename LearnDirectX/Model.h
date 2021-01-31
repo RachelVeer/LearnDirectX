@@ -55,7 +55,7 @@ private:
     {
         Assimp::Importer import;
         const aiScene* scene = import.ReadFile(path, 
-            aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_FlipUVs
+            aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_FlipUVs | aiProcess_ConvertToLeftHanded
          );
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
