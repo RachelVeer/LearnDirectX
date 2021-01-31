@@ -54,7 +54,9 @@ private:
     void loadModel(std::string path)
     {
         Assimp::Importer import;
-        const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate);
+        const aiScene* scene = import.ReadFile(path, 
+            aiProcess_Triangulate | aiProcess_JoinIdenticalVertices
+         );
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         {
@@ -105,7 +107,7 @@ private:
                 DirectX::XMFLOAT2 vec;
                 vec.x = mesh->mTextureCoords[0][i].x;
                 vec.y = mesh->mTextureCoords[0][i].y;
-                
+
                 vertex.TexCoords = vec;
             }
             else
@@ -131,7 +133,7 @@ private:
             textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
         }
 
-        return Mesh(m_d3dDevice.Get(), m_ImmediateContext.Get(), m_VertexShader.Get(), m_VertexLayout.Get(), 
+        return Mesh(m_d3dDevice.Get(), m_ImmediateContext.Get(), m_VertexShader.Get(), m_VertexLayout.Get(),
             m_VertexBuffer.Get(), m_IndexBuffer.Get(), vertices, indices, textures);
     }
 
